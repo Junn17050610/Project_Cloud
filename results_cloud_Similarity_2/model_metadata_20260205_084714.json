@@ -1,0 +1,120 @@
+{
+    "timestamp": "20260205_084714",
+    "model_filename": "model_cloud_classification_20260205_084714.h5",
+    "model_path": "models_cloud_Similarity_2\\model_cloud_classification_20260205_084714.h5",
+    "architecture": "MobileNetV2 + Custom Layers",
+    "input_shape": [
+        224,
+        224,
+        3
+    ],
+    "classes": [
+        "2_altocumulus_cirrocumulus",
+        "3_cirrus_cirrostratus",
+        "4_clearsky",
+        "5_stratocumulus_stratus_altostratus",
+        "6_cumulonimbus_nimbostratus",
+        "7_contrail"
+    ],
+    "class_indices": {
+        "2_altocumulus_cirrocumulus": 0,
+        "3_cirrus_cirrostratus": 1,
+        "4_clearsky": 2,
+        "5_stratocumulus_stratus_altostratus": 3,
+        "6_cumulonimbus_nimbostratus": 4,
+        "7_contrail": 5
+    },
+    "num_classes": 6,
+    "hyperparameters": {
+        "batch_size": 16,
+        "epochs": 50,
+        "learning_rate": 0.0001,
+        "img_size": [
+            224,
+            224
+        ],
+        "optimizer": "Adam",
+        "loss": "categorical_crossentropy"
+    },
+    "dataset": {
+        "train_samples": 4591,
+        "validation_samples": 572,
+        "test_samples": 579,
+        "total_samples": 5742,
+        "train_path": "MGCD/Dataset_Split_Normal/train",
+        "val_path": "MGCD/Dataset_Split_Normal/val",
+        "test_path": "MGCD/Dataset_Split_Normal/test"
+    },
+    "performance": {
+        "accuracy": 0.918825561312608,
+        "precision": 0.9180158826148755,
+        "recall": 0.918825561312608,
+        "f1_score": 0.9179576384661562,
+        "confusion_matrix": [
+            [
+                72,
+                1,
+                0,
+                0,
+                1,
+                0
+            ],
+            [
+                1,
+                124,
+                6,
+                0,
+                2,
+                0
+            ],
+            [
+                0,
+                1,
+                134,
+                0,
+                0,
+                0
+            ],
+            [
+                2,
+                1,
+                0,
+                81,
+                13,
+                0
+            ],
+            [
+                3,
+                5,
+                2,
+                9,
+                101,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                20
+            ]
+        ],
+        "per_class_accuracy": {
+            "2_altocumulus_cirrocumulus": 97.2972972972973,
+            "3_cirrus_cirrostratus": 93.23308270676691,
+            "4_clearsky": 99.25925925925925,
+            "5_stratocumulus_stratus_altostratus": 83.50515463917526,
+            "6_cumulonimbus_nimbostratus": 84.16666666666667,
+            "7_contrail": 100.0
+        }
+    },
+    "training_history": {
+        "final_train_accuracy": 0.861903727054596,
+        "final_val_accuracy": 0.9143356680870056,
+        "final_train_loss": 0.5293316841125488,
+        "final_val_loss": 0.36377155780792236,
+        "best_epoch": 36,
+        "total_epochs_trained": 50
+    }
+}
