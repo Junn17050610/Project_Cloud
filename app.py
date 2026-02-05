@@ -27,8 +27,8 @@ class Config:
     SKY_DETECTOR_PATH = 'models_skyimage_2/skyimage_model_20251222_133555.h5'
     
     # Stage 2: Cloud Classification
-    CLOUD_MODEL_PATH = 'models_cloud_Similarity_2/model_cloud_classification_20260205_084714.h5'
-    CLOUD_METADATA_PATH = 'results_cloud_Similarity_2/model_metadata_20260205_084714.json'
+    CLOUD_MODEL_PATH = 'models_cloud_Similarity_3/model_cloud_classification_20260205_193255.h5'
+    CLOUD_METADATA_PATH = 'results_cloud_Similarity_3/model_metadata_20260205_193255.json'
     
     IMG_SIZE = (224, 224)
     
