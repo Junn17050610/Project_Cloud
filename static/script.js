@@ -2,7 +2,7 @@
 // Modified untuk menampilkan multiple cloud types explanation
 
 // Konfigurasi
-const API_URL = "http://localhost:5000/api/predict";  // Ganti dengan URL deploy Anda
+const API_URL = "projectcloud-production.up.railway.app/api/predict";  // Ganti dengan URL deploy Anda
 
 // Variabel global
 let selectedFile = null;
