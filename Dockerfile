@@ -10,6 +10,10 @@ COPY requirements.txt .
 # Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0
+    
 # Copy semua file project
 COPY . .
 
@@ -18,3 +22,4 @@ EXPOSE 5000
 
 # Jalankan app
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+
