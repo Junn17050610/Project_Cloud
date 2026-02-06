@@ -561,15 +561,15 @@ class Config:
 }
 
     
-    # # Mapping dari class name lama ke kategori baru
-    # OLD_TO_NEW_MAPPING = {
-    #     '2_altocumulus_cirrocumulus': 'MID_CLOUD',
-    #     '3_cirrus_cirrostratus': 'HIGH_CLOUD',
-    #     '4_clearsky': '4_clearsky',
-    #     '5_stratocumulus_stratus_altostratus': 'LOW_CLOUD',
-    #     '6_cumulonimbus_nimbostratus': 'CONVECTIVE',
-    #     '7_contrail': '7_contrail'
-    # }
+    # Mapping dari class name lama ke kategori baru
+    OLD_TO_NEW_MAPPING = {
+        '1_cumulus' : '1_cumulus',
+        '2_altocumulus_cirrocumulus': 'MID_CLOUD',
+        '3_cirrus_cirrostratus': '3_cirrus_cirrostratus',
+        '4_clearsky': '4_clearsky',
+        '5_stratocumulus_stratus_altostratus': '5_stratocumulus_stratus_altostratus',
+        '6_cumulonimbus_nimbostratus': '6_cumulonimbus_nimbostratus'
+    }
 
 # ============================================================================
 # FISHEYE PREPROCESSING FUNCTIONS
