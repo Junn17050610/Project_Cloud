@@ -1,256 +1,5 @@
-// // Cloud Classification Frontend JavaScript
-// // Modified untuk menampilkan multiple cloud types explanation
-
-// // Konfigurasi
-// const API_URL = "https://projectcloud-production.up.railway.app/api/predict";  // Ganti dengan URL deploy Anda
-
-// // Variabel global
-// let selectedFile = null;
-
-// // Element references
-// const fileInput = document.getElementById("fileInput");
-// const cameraInput = document.getElementById("cameraInput");
-// const previewSection = document.getElementById("previewSection");
-// const imagePreview = document.getElementById("imagePreview");
-// const predictBtn = document.getElementById("predictBtn");
-// const resultSection = document.getElementById("resultSection");
-// const errorMessage = document.getElementById("errorMessage");
-
-// // Event listeners
-// fileInput.addEventListener("change", handleImageSelect);
-// cameraInput.addEventListener("change", handleImageSelect);
-// predictBtn.addEventListener("click", handlePredict);
-
-// /**
-//  * Handle image selection
-//  */
-// function handleImageSelect(e) {
-//   const file = e.target.files[0];
-
-//   if (!file) return;
-
-//   // Validasi
-//   if (!file.type.startsWith("image/")) {
-//     showError("File yang dipilih bukan gambar!");
-//     return;
-//   }
-
-//   if (file.size > 10 * 1024 * 1024) {
-//     showError("Ukuran file terlalu besar! Maksimal 10MB");
-//     return;
-//   }
-
-//   selectedFile = file;
-
-//   // Preview
-//   const reader = new FileReader();
-//   reader.onload = function (event) {
-//     imagePreview.src = event.target.result;
-//     imagePreview.style.display = "block";
-//     previewSection.querySelector(".placeholder").style.display = "none";
-//     predictBtn.disabled = false;
-
-//     resultSection.classList.remove("show");
-//     hideError();
-//   };
-//   reader.readAsDataURL(file);
-// }
-
-// /**
-//  * Handle prediction
-//  */
-// async function handlePredict() {
-//   if (!selectedFile) {
-//     showError("Tidak ada gambar yang dipilih!");
-//     return;
-//   }
-
-//   predictBtn.textContent = "Memproses...";
-//   predictBtn.disabled = true;
-//   hideError();
-
-//   try {
-//     const formData = new FormData();
-//     formData.append("image", selectedFile);
-
-//     const response = await fetch(API_URL, {
-//       method: "POST",
-//       body: formData,
-//     });
-
-//     const result = await response.json();
-
-//     console.log("API Response:", result);
-
-//     if (result.status === "success") {
-//       const data = result.data;
-//       showCloudResult(
-//         data.prediction,
-//         data.confidence,
-//         data.cloud_info,
-//         data.probabilities
-//       );
-//     } else {
-//       showError(result.message || "Terjadi kesalahan saat prediksi");
-//     }
-//   } catch (error) {
-//     console.error("Error:", error);
-//     showError("Error: " + error.message);
-//   } finally {
-//     predictBtn.textContent = "Klasifikasi Awan";
-//     predictBtn.disabled = false;
-//   }
-// }
-
-// /**
-//  * Show cloud classification result
-//  */
-// function showCloudResult(prediction, confidence, cloudInfo, probabilities) {
-//   const resultIcon = document.getElementById("resultIcon");
-//   const resultTitle = document.getElementById("resultTitle");
-//   const resultDescription = document.getElementById("resultDescription");
-//   const confidenceText = document.getElementById("confidenceText");
-
-//   console.log("Cloud Info:", cloudInfo);
-
-//   // Set icon
-//   resultIcon.textContent = cloudInfo.icon || "☁️";
-
-//   // Set title
-//   const cloudTypes = cloudInfo.cloud_types || ["Unknown"];
-//   if (cloudTypes.length === 1) {
-//     resultTitle.textContent = cloudTypes[0].toUpperCase();
-//   } else {
-//     resultTitle.textContent = "MULTIPLE CLOUD TYPES";
-//   }
-
-//   // Set description (HTML dengan penjelasan)
-//   let descriptionHTML = `
-//     <div style="margin-bottom: 15px;">
-//       ${cloudInfo.explanation || "Cloud type detected"}
-//     </div>
-//   `;
-
-//   // Add altitude info
-//   if (cloudInfo.altitude) {
-//     descriptionHTML += `
-//       <div style="font-size: 14px; opacity: 0.9; margin-bottom: 10px;">
-//         📏 <strong>Ketinggian:</strong> ${cloudInfo.altitude}
-//       </div>
-//     `;
-//   }
-
-//   // Add weather info
-//   if (cloudInfo.weather) {
-//     descriptionHTML += `
-//       <div style="font-size: 14px; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
-//         🌤️ <strong>Prediksi Cuaca:</strong> ${cloudInfo.weather}
-//       </div>
-//     `;
-//   }
-
-//   resultDescription.innerHTML = descriptionHTML;
-
-//   // Confidence
-//   let confidenceHTML = `
-//     <div style="margin-bottom: 10px;">
-//       <strong>Tingkat Kepercayaan:</strong> ${confidence.toFixed(2)}%
-//     </div>
-//   `;
-
-//   // Show top 3 probabilities
-//   if (probabilities) {
-//     // Sort probabilities
-//     const sortedProbs = Object.entries(probabilities)
-//       .sort((a, b) => b[1] - a[1])
-//       .slice(0, 3);
-
-//     confidenceHTML += `
-//       <div style="font-size: 12px; margin-top: 10px; text-align: left;">
-//         <strong>Top 3 Kemungkinan:</strong><br>
-//     `;
-
-//     sortedProbs.forEach(([className, prob], index) => {
-//       // Clean class name untuk display
-//       const cleanName = className
-//         .replace(/^\d+_/, "")
-//         .replace(/_/g, " ")
-//         .split(" ")
-//         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-//         .join(" ");
-
-//       confidenceHTML += `
-//         <div style="margin: 5px 0; padding: 5px; background: rgba(255,255,255,0.1); border-radius: 3px;">
-//           ${index + 1}. ${cleanName}: ${prob.toFixed(2)}%
-//         </div>
-//       `;
-//     });
-
-//     confidenceHTML += `</div>`;
-//   }
-
-//   confidenceText.innerHTML = confidenceHTML;
-
-//   // Show result dengan styling
-//   resultSection.classList.remove("clearsky", "rain", "cloud");
-
-//   // Apply styling berdasarkan tipe awan
-//   if (prediction.includes("clearsky")) {
-//     resultSection.classList.add("clearsky");
-//   } else if (
-//     prediction.includes("cumulonimbus") ||
-//     prediction.includes("nimbostratus")
-//   ) {
-//     resultSection.classList.add("rain");
-//   } else {
-//     resultSection.classList.add("cloud");
-//   }
-
-//   resultSection.classList.add("show");
-// }
-
-// /**
-//  * Show error message
-//  */
-// function showError(message) {
-//   errorMessage.innerHTML = `
-//     <div style="text-align: center;">
-//       <div style="font-size: 18px; font-weight: bold;">❌ Error</div>
-//       <div style="margin-top: 8px;">${message}</div>
-//     </div>
-//   `;
-//   errorMessage.classList.add("show");
-
-//   setTimeout(() => {
-//     hideError();
-//   }, 5000);
-// }
-
-// /**
-//  * Hide error message
-//  */
-// function hideError() {
-//   errorMessage.classList.remove("show");
-//   errorMessage.innerHTML = "";
-// }
-
-// // Check backend connection
-// async function checkBackendConnection() {
-//   try {
-//     const response = await fetch(API_URL.replace("/predict", ""));
-//     const result = await response.json();
-//     if (result.status === "online") {
-//       console.log("✓ Backend connected");
-//     }
-//   } catch (error) {
-//     console.warn("⚠ Backend not connected");
-//   }
-// }
-
-// checkBackendConnection();
-
-// Cloud Weather Prediction Frontend - Version 2.0
-// Enhanced with detailed cloud information and weather forecasting
+// Cloud Weather Prediction Frontend - Version 2.1
+// Enhanced with fisheye preprocessing support and detailed cloud information
 
 const API_URL = "https://projectcloud-production.up.railway.app/api/predict";
 
@@ -319,6 +68,9 @@ async function handlePredict() {
   try {
     const formData = new FormData();
     formData.append("image", selectedFile);
+    
+    // Optional: Disable fisheye correction jika diperlukan
+    // formData.append("disable_fisheye_correction", "false");
 
     const response = await fetch(API_URL, {
       method: "POST",
@@ -349,7 +101,14 @@ async function handlePredict() {
  * Show detailed cloud classification result
  */
 function showDetailedResult(data) {
-  const { prediction, specific_cloud_type, confidence, explanation, probabilities } = data;
+  const { 
+    prediction, 
+    specific_cloud_type, 
+    confidence, 
+    explanation, 
+    probabilities,
+    preprocessing  // NEW: Fisheye preprocessing info
+  } = data;
 
   const resultIcon = document.getElementById("resultIcon");
   const resultTitle = document.getElementById("resultTitle");
@@ -367,7 +126,14 @@ function showDetailedResult(data) {
   }
 
   // Build detailed description
-  let descriptionHTML = `
+  let descriptionHTML = '';
+
+  // NEW: Show fisheye preprocessing info if detected
+  if (preprocessing && preprocessing.fisheye) {
+    descriptionHTML += buildPreprocessingInfo(preprocessing.fisheye);
+  }
+
+  descriptionHTML += `
     <div style="margin-bottom: 20px;">
       ${explanation.main_text}
     </div>
@@ -525,9 +291,89 @@ function showDetailedResult(data) {
 }
 
 /**
+ * NEW: Build preprocessing info display
+ */
+function buildPreprocessingInfo(fisheyeInfo) {
+  if (!fisheyeInfo.fisheye_detected) {
+    // Jika tidak terdeteksi fisheye, tidak perlu tampilkan (optional)
+    return '';
+  }
+
+  const detected = fisheyeInfo.fisheye_detected;
+  const confidence = fisheyeInfo.fisheye_confidence;
+  const corrected = fisheyeInfo.correction_applied;
+  const strength = fisheyeInfo.correction_strength;
+
+  let html = `
+    <div style="background: rgba(100, 150, 255, 0.15); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #64b5f6;">
+      <div style="font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <span>📸</span>
+        <span>Preprocessing Gambar</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6;">
+  `;
+
+  if (detected) {
+    html += `
+      <div style="margin-bottom: 6px;">
+        ✓ Distorsi fisheye terdeteksi (${confidence.toFixed(1)}%)
+      </div>
+    `;
+
+    if (corrected) {
+      html += `
+        <div style="margin-bottom: 6px; color: #a5d6a7;">
+          ✓ Koreksi distorsi diterapkan (strength: ${strength})
+        </div>
+        <div style="font-size: 12px; opacity: 0.8; margin-top: 8px; font-style: italic;">
+          Gambar Anda dari kamera wide-angle telah dioptimalkan untuk akurasi yang lebih baik
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="opacity: 0.8;">
+          ℹ️ Koreksi tidak diperlukan
+        </div>
+      `;
+    }
+  }
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+/**
  * Show error for non-sky images
  */
 function showNotSkyError(result) {
+  const detail = result.detail || {};
+  
+  let suggestionHTML = '';
+  if (detail.suggestion) {
+    suggestionHTML = `
+      <div style="margin: 15px 0; font-size: 14px; line-height: 1.6;">
+        💡 ${detail.suggestion}
+      </div>
+    `;
+  }
+
+  // NEW: Show preprocessing info even in error
+  let preprocessingHTML = '';
+  if (detail.preprocessing && detail.preprocessing.fisheye) {
+    const fisheye = detail.preprocessing.fisheye;
+    if (fisheye.fisheye_detected) {
+      preprocessingHTML = `
+        <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 12px;">
+          📸 Fisheye terdeteksi dan dikoreksi, namun gambar tetap bukan langit/awan
+        </div>
+      `;
+    }
+  }
+
   errorMessage.innerHTML = `
     <div style="text-align: center; padding: 20px;">
       <div style="font-size: 48px; margin-bottom: 15px;">🚫</div>
@@ -537,8 +383,10 @@ function showNotSkyError(result) {
       <div style="margin: 15px 0; font-size: 14px; line-height: 1.6;">
         ${result.message}
       </div>
+      ${suggestionHTML}
+      ${preprocessingHTML}
       <div style="margin-top: 15px; font-size: 12px; opacity: 0.7;">
-        Confidence: ${result.detail.sky_confidence}%
+        Confidence: ${detail.sky_confidence}%
       </div>
     </div>
   `;
@@ -583,7 +431,6 @@ function formatCategoryName(category) {
     'MID_CLOUD': 'Mid-Level Clouds',
     'LOW_CLOUD': 'Low-Level Clouds',
     'CONVECTIVE': 'Convective Clouds',
-    '7_contrail': 'Contrail',
     '4_clearsky': 'Clear Sky'
   };
   return names[category] || category.replace(/_/g, ' ');
@@ -609,18 +456,44 @@ function getConfidenceLabel(confidence) {
 }
 
 /**
- * Check backend connection
+ * Check backend connection and features
  */
 async function checkBackendConnection() {
   try {
     const response = await fetch(API_URL.replace("/predict", ""));
     const result = await response.json();
+    
     if (result.status === "online") {
       console.log("✓ Backend connected - " + result.service);
+      
+      // NEW: Check fisheye preprocessing feature
+      if (result.features && result.features.fisheye_preprocessing) {
+        console.log("✓ Fisheye preprocessing: ENABLED");
+      }
+      
+      // Optional: Get config
+      try {
+        const configResponse = await fetch(API_URL.replace("/predict", "/config"));
+        const config = await configResponse.json();
+        
+        if (config.status === "success") {
+          console.log("Backend Config:", config.config);
+        }
+      } catch (e) {
+        // Config endpoint might not exist in older versions
+      }
     }
   } catch (error) {
     console.warn("⚠ Backend not connected");
   }
 }
 
+// Initialize
 checkBackendConnection();
+
+// Optional: Add visual feedback when camera is being used
+if (cameraInput) {
+  cameraInput.addEventListener('click', function() {
+    console.log("📸 Opening camera...");
+  });
+}
