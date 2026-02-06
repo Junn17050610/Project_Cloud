@@ -658,7 +658,8 @@ class FisheyePreprocessor:
         fisheye_confidence = (vignetting_score * 0.7) + ((1 - min(ratio, 1.0)) * 0.3)
         fisheye_confidence = max(0, min(1, fisheye_confidence))
         
-        is_fisheye = fisheye_confidence > Config.FISHEYE_DETECTION_THRESHOLD
+        is_fisheye = bool(fisheye_confidence > Config.FISHEYE_DETECTION_THRESHOLD)
+        fisheye_confidence = float(fisheye_confidence)
         
         return is_fisheye, fisheye_confidence
     
@@ -880,6 +881,21 @@ def generate_detailed_explanation(old_class, confidence, all_probabilities):
     
     return explanation
 
+def safe_json(obj):
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, tuple):
+        return list(obj)
+    if isinstance(obj, dict):
+        return {k: safe_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [safe_json(v) for v in obj]
+    return obj
+
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
@@ -1010,7 +1026,24 @@ def predict():
         print("✓ Request completed successfully")
         print("="*50 + "\n")
         
-        return jsonify({
+        # return jsonify({
+        #     'status': 'success',
+        #     'data': {
+        #         'prediction': explanation['category'],
+        #         'specific_cloud_type': explanation['specific_cloud_type'],
+        #         'confidence': round(confidence, 2),
+        #         'explanation': explanation,
+        #         'probabilities': {k: round(v, 2) for k, v in sorted_probs},
+        #         'validation': {
+        #             'is_sky_image': True,
+        #             'sky_confidence': round(sky_confidence * 100, 2)
+        #         },
+        #         'preprocessing': preprocessing_meta,
+        #         'timestamp': datetime.now().isoformat()
+        #     }
+        # })
+        
+        response_data ={
             'status': 'success',
             'data': {
                 'prediction': explanation['category'],
@@ -1025,7 +1058,8 @@ def predict():
                 'preprocessing': preprocessing_meta,
                 'timestamp': datetime.now().isoformat()
             }
-        })
+        }
+        return jsonify(safe_json(response_data))
     
     except Exception as e:
         print(f"\n✗ Error: {str(e)}")
