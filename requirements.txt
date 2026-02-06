@@ -16,3 +16,5 @@ gunicorn==21.2.0
 
 gevent==23.9.1
 werkzeug==2.3.7
+
+opencv-python==4.8.1.78
