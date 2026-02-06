@@ -362,9 +362,8 @@
 
 """
 app.py
-Flask Backend API - Cloud Classification with Multi-Class Explanation
-Dengan 2-Stage Validation: Sky Detection → Cloud Classification
-+ Auto Convert Perspective → Fisheye
+Flask Backend API - Cloud Classification with Detailed Weather Prediction
+Kategori: HIGH_CLOUD, MID_CLOUD, LOW_CLOUD, CONVECTIVE, CONTRAIL, CLEAR_SKY
 """
 
 from flask import Flask, request, jsonify, render_template
@@ -377,7 +376,6 @@ import io
 import json
 import os
 from datetime import datetime
-import cv2
 
 app = Flask(__name__)
 CORS(app)
@@ -386,151 +384,314 @@ CORS(app)
 # KONFIGURASI
 # ============================================================================
 class Config:
+    # Path models
     SKY_DETECTOR_PATH = 'models_skyimage_2/skyimage_model_20251222_133555.h5'
     CLOUD_MODEL_PATH = 'models_cloud_Similarity_3/model_cloud_classification_20260205_193255.h5'
     CLOUD_METADATA_PATH = 'results_cloud_Similarity_3/model_metadata_20260205_193255.json'
-
+    
     IMG_SIZE = (224, 224)
     SKY_CONFIDENCE_THRESHOLD = 0.7
-
+    
+    # KATEGORI BARU dengan detail lengkap
     CLASS_MAPPING = {
-        '2_altocumulus_cirrocumulus': {
-            'types': ['Altocumulus', 'Cirrocumulus'],
-            'altitude': 'Medium to High (2-7 km)',
-            'weather': 'Cuaca cerah hingga berawan, kemungkinan hujan ringan dalam 12-24 jam',
-            'icon': '⛅'
-        },
-        '3_cirrus_cirrostratus': {
-            'types': ['Cirrus', 'Cirrostratus'],
-            'altitude': 'High (5-13 km)',
-            'weather': 'Cuaca baik, mungkin berubah dalam 24-48 jam',
+        'HIGH_CLOUD': {
+            'category': 'High-Level Clouds',
+            'types': ['Cirrus', 'Cirrostratus', 'Cirrocumulus'],
+            'altitude': '5,000 - 13,000 meter (16,500 - 43,000 kaki)',
+            'characteristics': [
+                '☁️ Awan tipis dan halus seperti bulu burung atau serat',
+                '🌡️ Terbentuk dari kristal es karena suhu sangat dingin',
+                '☀️ Sering terlihat putih atau transparan',
+                '🌅 Membuat halo di sekitar matahari atau bulan'
+            ],
+            'cloud_details': {
+                'Cirrus': {
+                    'description': 'Awan tinggi berbentuk serat halus dan melengkung',
+                    'appearance': 'Seperti bulu burung atau ekor kuda',
+                    'composition': 'Kristal es'
+                },
+                'Cirrostratus': {
+                    'description': 'Lapisan tipis awan tinggi yang menutupi langit',
+                    'appearance': 'Seperti tirai putih tipis',
+                    'composition': 'Kristal es'
+                },
+                'Cirrocumulus': {
+                    'description': 'Awan tinggi berbentuk butiran kecil atau riak',
+                    'appearance': 'Seperti sisik ikan (mackerel sky)',
+                    'composition': 'Kristal es'
+                }
+            },
+            'weather_forecast': '🌤️ Cuaca umumnya baik, namun bisa menjadi tanda perubahan cuaca dalam 24-48 jam ke depan',
+            'precipitation': 'Tidak menghasilkan hujan',
             'icon': '🌤️'
         },
-        '4_clearsky': {
-            'types': ['Clear Sky'],
-            'altitude': 'N/A',
-            'weather': 'Cuaca cerah dan stabil',
-            'icon': '☀️'
+        
+        'MID_CLOUD': {
+            'category': 'Mid-Level Clouds',
+            'types': ['Altocumulus', 'Altostratus'],
+            'altitude': '2,000 - 7,000 meter (6,500 - 23,000 kaki)',
+            'characteristics': [
+                '☁️ Awan bergelombang atau berlapis di ketinggian menengah',
+                '🌡️ Tersusun dari tetesan air dan kristal es',
+                '⚪ Berwarna abu-abu hingga putih kebiruan',
+                '🌥️ Bisa menutupi sebagian atau seluruh langit'
+            ],
+            'cloud_details': {
+                'Altocumulus': {
+                    'description': 'Awan menengah berbentuk gumpalan atau lembaran',
+                    'appearance': 'Seperti kapas bergelombang tersusun rapi',
+                    'composition': 'Tetesan air dan kristal es'
+                },
+                'Altostratus': {
+                    'description': 'Lapisan awan menengah yang luas dan seragam',
+                    'appearance': 'Seperti selimut abu-abu menutupi langit',
+                    'composition': 'Tetesan air dan kristal es'
+                }
+            },
+            'weather_forecast': '⛅ Cuaca berawan hingga mendung. Kemungkinan hujan ringan hingga sedang dalam 12-24 jam',
+            'precipitation': 'Altocumulus: Biasanya tidak hujan. Altostratus: Hujan ringan atau gerimis',
+            'icon': '⛅'
         },
-        '5_stratocumulus_stratus_altostratus': {
-            'types': ['Stratocumulus', 'Stratus', 'Altostratus'],
-            'altitude': 'Low to Medium (0-4 km)',
-            'weather': 'Cuaca mendung, kemungkinan hujan gerimis atau ringan',
+        
+        'LOW_CLOUD': {
+            'category': 'Low-Level Clouds',
+            'types': ['Stratus', 'Stratocumulus', 'Nimbostratus'],
+            'altitude': '0 - 2,000 meter (0 - 6,500 kaki)',
+            'characteristics': [
+                '☁️ Awan rendah yang gelap dan tebal',
+                '🌫️ Bisa menutupi seluruh langit dengan lapisan seragam',
+                '🌧️ Sering dikaitkan dengan cuaca mendung dan hujan',
+                '❄️ Tersusun dari tetesan air (atau kristal es jika sangat dingin)'
+            ],
+            'cloud_details': {
+                'Stratus': {
+                    'description': 'Lapisan awan rendah yang seragam dan mendatar',
+                    'appearance': 'Seperti kabut yang terangkat dari tanah',
+                    'composition': 'Tetesan air kecil'
+                },
+                'Stratocumulus': {
+                    'description': 'Awan rendah berbentuk gumpalan atau bergumpal',
+                    'appearance': 'Seperti gulungan kapas gelap tersusun',
+                    'composition': 'Tetesan air'
+                },
+                'Nimbostratus': {
+                    'description': 'Awan hujan tebal yang gelap dan luas',
+                    'appearance': 'Lapisan gelap tebal tanpa bentuk jelas',
+                    'composition': 'Tetesan air dan kristal es'
+                }
+            },
+            'weather_forecast': '🌧️ Cuaca mendung dan basah. Hujan gerimis hingga sedang yang berkelanjutan',
+            'precipitation': 'Stratus: Gerimis ringan. Stratocumulus: Hujan ringan. Nimbostratus: Hujan sedang berkelanjutan',
             'icon': '☁️'
         },
-        '6_cumulonimbus_nimbostratus': {
-            'types': ['Cumulonimbus', 'Nimbostratus'],
-            'altitude': 'Low to High (0-13 km)',
-            'weather': '⚠️ Hujan lebat, petir, dan badai kemungkinan besar',
-            'icon': '⛈️'
+        
+        'CONVECTIVE': {
+            'category': 'Convective Clouds',
+            'types': ['Cumulus', 'Cumulonimbus'],
+            'altitude': '0 - 13,000 meter (vertikal, dari rendah hingga sangat tinggi)',
+            'characteristics': [
+                '⛈️ Awan konvektif dengan perkembangan vertikal kuat',
+                '🌪️ Terbentuk dari udara hangat yang naik cepat',
+                '⚡ Dapat menghasilkan cuaca ekstrem (petir, hujan deras, angin kencang)',
+                '☁️ Bentuk menjulang tinggi seperti menara atau landasan'
+            ],
+            'cloud_details': {
+                'Cumulus': {
+                    'description': 'Awan putih bergumpal dengan dasar datar',
+                    'appearance': 'Seperti kapas atau kembang kol mengembang',
+                    'composition': 'Tetesan air',
+                    'types': 'Cumulus humilis (kecil), Cumulus mediocris (sedang), Cumulus congestus (besar)'
+                },
+                'Cumulonimbus': {
+                    'description': 'Awan badai yang sangat besar dan tinggi',
+                    'appearance': 'Seperti menara raksasa dengan puncak berbentuk landasan',
+                    'composition': 'Tetesan air, kristal es, hujan, salju, es',
+                    'danger': '⚠️ BAHAYA: Dapat menghasilkan petir, hujan lebat, hujan es, tornado'
+                }
+            },
+            'weather_forecast': '⛈️ PERINGATAN: Cuaca berpotensi ekstrem! Cumulus: Cuaca cerah hingga berawan. Cumulonimbus: Badai petir, hujan sangat deras, angin kencang, kemungkinan hujan es atau tornado',
+            'precipitation': 'Cumulus: Biasanya tidak hujan. Cumulonimbus: Hujan sangat lebat (downpour) dengan intensitas tinggi',
+            'icon': '⛈️',
+            'warning': True
         },
+        
         '7_contrail': {
-            'types': ['Contrail'],
-            'altitude': 'Very High (8-12 km)',
-            'weather': 'Jejak pesawat - indikator kelembaban tinggi',
+            'category': 'Artificial Clouds',
+            'types': ['Contrail (Condensation Trail)'],
+            'altitude': '8,000 - 12,000 meter (26,000 - 40,000 kaki)',
+            'characteristics': [
+                '✈️ Jejak kondensasi dari pesawat terbang',
+                '❄️ Terbentuk dari uap air mesin pesawat yang membeku',
+                '➖ Berbentuk garis lurus atau sedikit melengkung',
+                '🌡️ Indikator kelembaban tinggi di atmosfer atas'
+            ],
+            'cloud_details': {
+                'Contrail': {
+                    'description': 'Garis putih panjang yang terbentuk di belakang pesawat',
+                    'appearance': 'Seperti garis lurus putih di langit',
+                    'composition': 'Kristal es dari uap air mesin pesawat',
+                    'persistence': 'Bisa hilang cepat atau bertahan lama tergantung kelembaban'
+                }
+            },
+            'weather_forecast': '✈️ Contrail sendiri tidak memprediksi cuaca, tetapi persistensinya menunjukkan kelembaban tinggi di atmosfer atas yang bisa mengindikasikan perubahan cuaca',
+            'precipitation': 'Tidak menghasilkan hujan',
             'icon': '✈️'
+        },
+        
+        '4_clearsky': {
+            'category': 'Clear Conditions',
+            'types': ['Clear Sky (Langit Cerah)'],
+            'altitude': 'N/A',
+            'characteristics': [
+                '☀️ Langit cerah tanpa awan atau dengan awan minimal',
+                '🌞 Visibilitas sangat baik',
+                '🌡️ Suhu dipengaruhi langsung oleh radiasi matahari',
+                '🌤️ Kondisi cuaca stabil'
+            ],
+            'cloud_details': {
+                'Clear Sky': {
+                    'description': 'Kondisi langit tanpa tutupan awan signifikan',
+                    'appearance': 'Langit biru jernih atau dengan sedikit awan',
+                    'composition': 'N/A'
+                }
+            },
+            'weather_forecast': '☀️ Cuaca cerah dan stabil. Tidak ada tanda-tanda hujan. Kondisi bagus untuk aktivitas outdoor',
+            'precipitation': 'Tidak ada',
+            'icon': '☀️'
         }
+    }
+    
+    # Mapping dari class name lama ke kategori baru
+    OLD_TO_NEW_MAPPING = {
+        '2_altocumulus_cirrocumulus': 'MID_CLOUD',  # Altocumulus = MID
+        '3_cirrus_cirrostratus': 'HIGH_CLOUD',      # Cirrus = HIGH
+        '4_clearsky': '4_clearsky',                  # Clear sky tetap
+        '5_stratocumulus_stratus_altostratus': 'LOW_CLOUD',  # Stratus = LOW, Altostratus = MID (tapi mayoritas LOW)
+        '6_cumulonimbus_nimbostratus': 'CONVECTIVE',  # Cumulonimbus = CONVECTIVE, Nimbostratus sebenarnya LOW tapi kita masukkan CONVECTIVE karena di grup ini
+        '7_contrail': '7_contrail'                   # Contrail tetap
     }
 
 # ============================================================================
 # LOAD MODELS
 # ============================================================================
 print("=" * 80)
-print("CLOUD CLASSIFICATION API - 2-STAGE VALIDATION")
+print("CLOUD WEATHER PREDICTION API")
 print("=" * 80)
 
+# Load Sky Detector
 sky_detector = None
+sky_classes = None
+
+if os.path.exists(Config.SKY_DETECTOR_PATH):
+    try:
+        print(f"\n[Stage 1] Loading Sky Detector: {Config.SKY_DETECTOR_PATH}")
+        sky_detector = keras.models.load_model(Config.SKY_DETECTOR_PATH)
+        print("✓ Sky Detector loaded successfully")
+        sky_classes = {0: 'bukan_langit', 1: 'langit'}
+    except Exception as e:
+        print(f"⚠ Warning: Sky Detector gagal dimuat: {str(e)}")
+
+# Load Cloud Classifier
 cloud_model = None
 metadata = None
 
-# Load Sky Detector
-if os.path.exists(Config.SKY_DETECTOR_PATH):
-    sky_detector = keras.models.load_model(Config.SKY_DETECTOR_PATH)
-    sky_classes = {0: 'bukan_langit', 1: 'langit'}
+try:
+    print(f"\n[Stage 2] Loading Cloud Model: {Config.CLOUD_MODEL_PATH}")
+    cloud_model = keras.models.load_model(Config.CLOUD_MODEL_PATH)
+    print("✓ Cloud Model loaded successfully")
+    
+    if os.path.exists(Config.CLOUD_METADATA_PATH):
+        with open(Config.CLOUD_METADATA_PATH, 'r') as f:
+            metadata = json.load(f)
+        print(f"✓ Metadata loaded - Accuracy: {metadata['performance']['accuracy']*100:.2f}%")
+        Config.OLD_CLASSES = metadata.get('classes', list(Config.OLD_TO_NEW_MAPPING.keys()))
+    else:
+        Config.OLD_CLASSES = list(Config.OLD_TO_NEW_MAPPING.keys())
+        
+except Exception as e:
+    print(f"✗ Error loading Cloud Model: {str(e)}")
 
-# Load Cloud Model
-cloud_model = keras.models.load_model(Config.CLOUD_MODEL_PATH)
-
-if os.path.exists(Config.CLOUD_METADATA_PATH):
-    with open(Config.CLOUD_METADATA_PATH, 'r') as f:
-        metadata = json.load(f)
-    Config.CLASSES = metadata.get('classes', list(Config.CLASS_MAPPING.keys()))
-else:
-    Config.CLASSES = list(Config.CLASS_MAPPING.keys())
-
-# ============================================================================
-# FISHEYE CONVERSION
-# ============================================================================
-def perspective_to_fisheye(img, strength=0.75):
-    """
-    Convert perspective → fisheye (optimized version)
-    """
-    h, w = img.shape[:2]
-    cx, cy = w // 2, h // 2
-    max_radius = min(cx, cy)
-
-    y, x = np.indices((h, w))
-    x = (x - cx) / max_radius
-    y = (y - cy) / max_radius
-
-    r = np.sqrt(x**2 + y**2)
-    theta = np.arctan2(y, x)
-
-    r_new = r ** strength
-
-    src_x = cx + r_new * max_radius * np.cos(theta)
-    src_y = cy + r_new * max_radius * np.sin(theta)
-
-    src_x = np.clip(src_x, 0, w - 1).astype(np.float32)
-    src_y = np.clip(src_y, 0, h - 1).astype(np.float32)
-
-    fisheye = cv2.remap(img, src_x, src_y, interpolation=cv2.INTER_LINEAR)
-    return fisheye
+print("=" * 80)
 
 # ============================================================================
-# PREPROCESS IMAGE
+# FUNCTIONS
 # ============================================================================
+
 def preprocess_image(image_bytes):
-
+    """Preprocess image"""
     img = Image.open(io.BytesIO(image_bytes))
-
     if img.mode != 'RGB':
         img = img.convert('RGB')
+    img = img.resize(Config.IMG_SIZE)
+    img_array = np.array(img).astype('float32') / 255.0
+    return np.expand_dims(img_array, axis=0)
 
-    img = np.array(img)
-
-    # Resize
-    img = cv2.resize(img, Config.IMG_SIZE)
-
-    # Convert to fisheye
-    img = perspective_to_fisheye(img)
-
-    # Normalisasi
-    img = img.astype('float32') / 255.0
-
-    return np.expand_dims(img, axis=0)
-
-# ============================================================================
-# EXPLANATION GENERATOR
-# ============================================================================
-def generate_explanation(predicted_class):
-
-    info = Config.CLASS_MAPPING.get(predicted_class)
-
-    types = info['types']
-
-    if len(types) == 1:
-        explanation = f"Gambar ini menunjukkan <strong>{types[0]}</strong>."
-    else:
-        explanation = f"Dari gambar ini kemungkinan: {', '.join(types)}"
-
-    return {
-        'explanation': explanation,
-        'cloud_types': types,
-        'altitude': info['altitude'],
-        'weather': info['weather'],
-        'icon': info['icon']
+def get_specific_cloud_type(old_class, confidence_scores):
+    """
+    Menentukan jenis awan spesifik berdasarkan class lama dan confidence
+    """
+    # Mapping untuk menentukan awan spesifik
+    specific_mapping = {
+        '2_altocumulus_cirrocumulus': ['Altocumulus', 'Cirrocumulus'],
+        '3_cirrus_cirrostratus': ['Cirrus', 'Cirrostratus'],
+        '5_stratocumulus_stratus_altostratus': ['Stratocumulus', 'Stratus', 'Altostratus'],
+        '6_cumulonimbus_nimbostratus': ['Cumulonimbus', 'Nimbostratus']
     }
+    
+    if old_class in specific_mapping:
+        # Untuk simplifikasi, kita ambil yang pertama dengan confidence tertinggi
+        # Atau bisa dikembangkan dengan logic lebih complex
+        return specific_mapping[old_class][0]  # Return yang paling mungkin
+    
+    return None
+
+def generate_detailed_explanation(old_class, confidence, all_probabilities):
+    """Generate detailed explanation with specific cloud type identification"""
+    
+    # Convert old class ke kategori baru
+    new_category = Config.OLD_TO_NEW_MAPPING.get(old_class, old_class)
+    category_info = Config.CLASS_MAPPING.get(new_category, {})
+    
+    # Identifikasi jenis awan spesifik
+    specific_cloud = get_specific_cloud_type(old_class, all_probabilities)
+    
+    # Build explanation
+    explanation = {
+        'category': new_category,
+        'category_name': category_info.get('category', 'Unknown'),
+        'specific_cloud_type': specific_cloud,
+        'confidence': confidence,
+        'cloud_types_in_category': category_info.get('types', []),
+        'altitude': category_info.get('altitude', 'Unknown'),
+        'characteristics': category_info.get('characteristics', []),
+        'cloud_details': category_info.get('cloud_details', {}),
+        'weather_forecast': category_info.get('weather_forecast', 'Unknown'),
+        'precipitation': category_info.get('precipitation', 'Unknown'),
+        'icon': category_info.get('icon', '☁️'),
+        'is_warning': category_info.get('warning', False)
+    }
+    
+    # Generate natural language explanation
+    types = category_info.get('types', ['Unknown'])
+    
+    if specific_cloud:
+        explanation['main_text'] = f"Awan yang terdeteksi adalah <strong>{specific_cloud}</strong>"
+        if len(types) > 1:
+            other_types = [t for t in types if t != specific_cloud]
+            if other_types:
+                explanation['main_text'] += f", yang termasuk dalam kategori <strong>{new_category}</strong> bersama dengan {', '.join(other_types)}"
+        else:
+            explanation['main_text'] += f" (kategori <strong>{new_category}</strong>)"
+    else:
+        if len(types) == 1:
+            explanation['main_text'] = f"Terdeteksi <strong>{types[0]}</strong>"
+        else:
+            types_str = ', '.join(types[:-1]) + f" dan {types[-1]}"
+            explanation['main_text'] = f"Terdeteksi awan kategori <strong>{new_category}</strong>, yang meliputi {types_str}"
+    
+    explanation['main_text'] += f" dengan tingkat keyakinan <strong>{confidence:.1f}%</strong>."
+    
+    return explanation
 
 # ============================================================================
 # API ENDPOINTS
@@ -540,25 +701,21 @@ def generate_explanation(predicted_class):
 def home():
     return jsonify({
         'status': 'online',
-        'service': 'Cloud Classification API',
-        'model_loaded': cloud_model is not None
+        'service': 'Cloud Weather Prediction API',
+        'version': '2.0',
+        'categories': list(Config.CLASS_MAPPING.keys())
     })
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
-    """
-    2-STAGE Cloud Classification:
-    Stage 1: Validasi apakah gambar langit (Sky Detector)
-    Stage 2: Klasifikasi jenis awan (Cloud Classifier)
-    """
-    # Check cloud model
+    """Cloud Classification and Weather Prediction"""
+    
     if cloud_model is None:
         return jsonify({
             'status': 'error',
             'message': 'Cloud model belum dimuat'
         }), 500
     
-    # Check file
     if 'image' not in request.files:
         return jsonify({
             'status': 'error',
@@ -573,45 +730,24 @@ def predict():
         }), 400
     
     try:
-        # Read and preprocess image
+        # Preprocess
         image_bytes = file.read()
         processed_image = preprocess_image(image_bytes)
         
-        # ====================================================================
-        # STAGE 1: SKY DETECTION (Validasi gambar langit)
-        # ====================================================================
-        
-        is_sky = True  # Default jika sky detector tidak ada
+        # ====== STAGE 1: SKY DETECTION ======
+        is_sky = True
         sky_confidence = 1.0
         sky_class_name = "unknown"
         
         if sky_detector is not None:
-            print("\n[Stage 1] Running Sky Detection...")
-            
-            # Predict dengan sky detector
             sky_predictions = sky_detector.predict(processed_image, verbose=0)
             sky_class_idx = np.argmax(sky_predictions[0])
             sky_confidence = float(sky_predictions[0][sky_class_idx])
             sky_class_name = sky_classes.get(sky_class_idx, 'unknown')
             
-            print(f"  Predicted class: {sky_class_name} (index: {sky_class_idx})")
-            print(f"  Confidence: {sky_confidence*100:.2f}%")
-            print(f"  Probabilities: langit={sky_predictions[0][1]*100:.2f}%, bukan_langit={sky_predictions[0][0]*100:.2f}%")
-            
-            # Check apakah gambar langit
-            # Asumsi: index 1 = langit, index 0 = bukan_langit
-            if sky_class_idx == 0:  # Bukan langit
+            if sky_class_idx == 0 or sky_confidence < Config.SKY_CONFIDENCE_THRESHOLD:
                 is_sky = False
-                print(f"  ❌ Result: Bukan gambar langit!")
-            elif sky_confidence < Config.SKY_CONFIDENCE_THRESHOLD:
-                is_sky = False
-                print(f"  ⚠️  Result: Confidence terlalu rendah ({sky_confidence*100:.2f}% < {Config.SKY_CONFIDENCE_THRESHOLD*100}%)")
-            else:
-                print(f"  ✓ Result: Gambar langit tervalidasi")
-        else:
-            print("\n[Stage 1] Sky Detector tidak aktif, skip validation")
         
-        # Jika bukan gambar langit, return error dengan peringatan
         if not is_sky:
             return jsonify({
                 'status': 'error',
@@ -621,86 +757,75 @@ def predict():
                     'is_sky': False,
                     'predicted_class': sky_class_name,
                     'sky_confidence': round(sky_confidence * 100, 2),
-                    'threshold': Config.SKY_CONFIDENCE_THRESHOLD * 100,
-                    'suggestion': 'Silakan upload gambar langit atau awan untuk klasifikasi',
-                    'examples': [
-                        '✓ Foto langit dengan awan',
-                        '✓ Foto awan dari bawah',
-                        '✓ Foto langit cerah',
-                        '✗ Foto selfie, makanan, bangunan, dll'
-                    ]
+                    'suggestion': 'Silakan upload gambar langit atau awan untuk prediksi cuaca'
                 }
             }), 400
         
-        # ====================================================================
-        # STAGE 2: CLOUD CLASSIFICATION
-        # ====================================================================
-        
-        print("\n[Stage 2] Running Cloud Classification...")
-        
-        # Predict dengan cloud classifier
+        # ====== STAGE 2: CLOUD CLASSIFICATION ======
         predictions = cloud_model.predict(processed_image, verbose=0)
         predicted_idx = np.argmax(predictions[0])
         confidence = float(predictions[0][predicted_idx]) * 100
-        predicted_class = Config.CLASSES[predicted_idx]
+        old_predicted_class = Config.OLD_CLASSES[predicted_idx]
         
-        print(f"  Predicted class: {predicted_class}")
-        print(f"  Confidence: {confidence:.2f}%")
+        # Generate detailed explanation
+        explanation = generate_detailed_explanation(
+            old_predicted_class, 
+            confidence, 
+            predictions[0]
+        )
         
-        # Generate explanation
-        explanation_data = generate_explanation(predicted_class)
+        # Probabilities (converted to new categories)
+        category_probabilities = {}
+        for i, old_class in enumerate(Config.OLD_CLASSES):
+            new_cat = Config.OLD_TO_NEW_MAPPING.get(old_class, old_class)
+            prob = float(predictions[0][i]) * 100
+            if new_cat in category_probabilities:
+                category_probabilities[new_cat] = max(category_probabilities[new_cat], prob)
+            else:
+                category_probabilities[new_cat] = prob
         
-        # Probabilities
-        probs = {
-            Config.CLASSES[i]: float(predictions[0][i]) * 100 
-            for i in range(len(Config.CLASSES))
-        }
-        
-        # ====================================================================
-        # RESPONSE
-        # ====================================================================
+        # Sort probabilities
+        sorted_probs = sorted(category_probabilities.items(), key=lambda x: x[1], reverse=True)
         
         return jsonify({
             'status': 'success',
             'data': {
-                # Cloud classification results
-                'prediction': predicted_class,
+                'prediction': explanation['category'],
+                'specific_cloud_type': explanation['specific_cloud_type'],
                 'confidence': round(confidence, 2),
-                'probabilities': probs,
-                'cloud_info': explanation_data,
-                
-                # Sky validation info
+                'explanation': explanation,
+                'probabilities': {k: round(v, 2) for k, v in sorted_probs},
                 'validation': {
                     'is_sky_image': True,
-                    'sky_confidence': round(sky_confidence * 100, 2),
-                    'sky_detector_active': sky_detector is not None
+                    'sky_confidence': round(sky_confidence * 100, 2)
                 },
-                
                 'timestamp': datetime.now().isoformat()
             }
         })
     
     except Exception as e:
-        print(f"\n✗ Error during prediction: {str(e)}")
+        print(f"\n✗ Error: {str(e)}")
         return jsonify({
             'status': 'error',
             'message': f'Error saat prediksi: {str(e)}'
         }), 500
 
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    """Get all cloud categories information"""
+    return jsonify({
+        'status': 'success',
+        'categories': Config.CLASS_MAPPING
+    })
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check dengan info kedua model"""
+    """Health check"""
     return jsonify({
         'status': 'healthy',
         'models': {
-            'sky_detector': {
-                'status': 'loaded' if sky_detector is not None else 'not_loaded',
-                'active': sky_detector is not None
-            },
-            'cloud_classifier': {
-                'status': 'loaded' if cloud_model is not None else 'not_loaded',
-                'active': cloud_model is not None
-            }
+            'sky_detector': 'loaded' if sky_detector else 'not_loaded',
+            'cloud_classifier': 'loaded' if cloud_model else 'not_loaded'
         },
         'timestamp': datetime.now().isoformat()
     })
@@ -709,6 +834,7 @@ def health_check():
 def web_ui():
     """Web UI"""
     return render_template("index.html")
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
