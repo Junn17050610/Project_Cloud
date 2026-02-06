@@ -405,182 +405,171 @@ class Config:
     
     # KATEGORI dengan detail lengkap
     CLASS_MAPPING = {
-        'HIGH_CLOUD': {
-            'category': 'High-Level Clouds',
-            'types': ['Cirrus', 'Cirrostratus', 'Cirrocumulus'],
-            'altitude': '5,000 - 13,000 meter (16,500 - 43,000 kaki)',
-            'characteristics': [
-                '☁️ Awan tipis dan halus seperti bulu burung atau serat',
-                '🌡️ Terbentuk dari kristal es karena suhu sangat dingin',
-                '☀️ Sering terlihat putih atau transparan',
-                '🌅 Membuat halo di sekitar matahari atau bulan'
-            ],
-            'cloud_details': {
-                'Cirrus': {
-                    'description': 'Awan tinggi berbentuk serat halus dan melengkung',
-                    'appearance': 'Seperti bulu burung atau ekor kuda',
-                    'composition': 'Kristal es'
-                },
-                'Cirrostratus': {
-                    'description': 'Lapisan tipis awan tinggi yang menutupi langit',
-                    'appearance': 'Seperti tirai putih tipis',
-                    'composition': 'Kristal es'
-                },
-                'Cirrocumulus': {
-                    'description': 'Awan tinggi berbentuk butiran kecil atau riak',
-                    'appearance': 'Seperti sisik ikan (mackerel sky)',
-                    'composition': 'Kristal es'
-                }
-            },
-            'weather_forecast': '🌤️ Cuaca umumnya baik, namun bisa menjadi tanda perubahan cuaca dalam 24-48 jam ke depan',
-            'precipitation': 'Tidak menghasilkan hujan',
-            'icon': '🌤️'
+
+    "1_cumulus": {
+        'category': 'Convective Clouds',
+        'types': ['Cumulus'],
+        'altitude': '500 - 2,000 meter',
+        'characteristics': [
+            '☁️ Awan putih bergumpal dengan dasar datar',
+            '🌤️ Biasanya muncul saat cuaca cerah',
+            '🌡️ Terbentuk dari udara hangat yang naik',
+            '📈 Dapat berkembang menjadi awan badai'
+        ],
+        'cloud_details': {
+            'Cumulus': {
+                'description': 'Awan putih bergumpal dengan dasar datar',
+                'appearance': 'Seperti kapas atau kembang kol',
+                'composition': 'Tetesan air'
+            }
         },
-        
-        'MID_CLOUD': {
-            'category': 'Mid-Level Clouds',
-            'types': ['Altocumulus', 'Altostratus'],
-            'altitude': '2,000 - 7,000 meter (6,500 - 23,000 kaki)',
-            'characteristics': [
-                '☁️ Awan bergelombang atau berlapis di ketinggian menengah',
-                '🌡️ Tersusun dari tetesan air dan kristal es',
-                '⚪ Berwarna abu-abu hingga putih kebiruan',
-                '🌥️ Bisa menutupi sebagian atau seluruh langit'
-            ],
-            'cloud_details': {
-                'Altocumulus': {
-                    'description': 'Awan menengah berbentuk gumpalan atau lembaran',
-                    'appearance': 'Seperti kapas bergelombang tersusun rapi',
-                    'composition': 'Tetesan air dan kristal es'
-                },
-                'Altostratus': {
-                    'description': 'Lapisan awan menengah yang luas dan seragam',
-                    'appearance': 'Seperti selimut abu-abu menutupi langit',
-                    'composition': 'Tetesan air dan kristal es'
-                }
+        'weather_forecast': '🌤️ Umumnya menandakan cuaca cerah',
+        'precipitation': 'Biasanya tidak hujan',
+        'icon': '🌤️'
+    },
+
+    "2_altocumulus_cirrocumulus": {
+        'category': 'Mid & High Level Clouds',
+        'types': ['Altocumulus', 'Cirrocumulus'],
+        'altitude': '2,000 - 7,000 meter',
+        'characteristics': [
+            '☁️ Awan bergelombang atau berbintik kecil',
+            '⚪ Berwarna putih hingga abu-abu',
+            '🌥️ Dapat menandakan perubahan cuaca'
+        ],
+        'cloud_details': {
+            'Altocumulus': {
+                'description': 'Awan menengah berbentuk gumpalan atau lembaran',
+                'appearance': 'Seperti kapas bergelombang',
+                'composition': 'Tetesan air dan kristal es'
             },
-            'weather_forecast': '⛅ Cuaca berawan hingga mendung. Kemungkinan hujan ringan hingga sedang dalam 12-24 jam',
-            'precipitation': 'Altocumulus: Biasanya tidak hujan. Altostratus: Hujan ringan atau gerimis',
-            'icon': '⛅'
+            'Cirrocumulus': {
+                'description': 'Awan tinggi berbentuk butiran kecil',
+                'appearance': 'Seperti sisik ikan',
+                'composition': 'Kristal es'
+            }
         },
-        
-        'LOW_CLOUD': {
-            'category': 'Low-Level Clouds',
-            'types': ['Stratus', 'Stratocumulus', 'Nimbostratus'],
-            'altitude': '0 - 2,000 meter (0 - 6,500 kaki)',
-            'characteristics': [
-                '☁️ Awan rendah yang gelap dan tebal',
-                '🌫️ Bisa menutupi seluruh langit dengan lapisan seragam',
-                '🌧️ Sering dikaitkan dengan cuaca mendung dan hujan',
-                '❄️ Tersusun dari tetesan air (atau kristal es jika sangat dingin)'
-            ],
-            'cloud_details': {
-                'Stratus': {
-                    'description': 'Lapisan awan rendah yang seragam dan mendatar',
-                    'appearance': 'Seperti kabut yang terangkat dari tanah',
-                    'composition': 'Tetesan air kecil'
-                },
-                'Stratocumulus': {
-                    'description': 'Awan rendah berbentuk gumpalan atau bergumpal',
-                    'appearance': 'Seperti gulungan kapas gelap tersusun',
-                    'composition': 'Tetesan air'
-                },
-                'Nimbostratus': {
-                    'description': 'Awan hujan tebal yang gelap dan luas',
-                    'appearance': 'Lapisan gelap tebal tanpa bentuk jelas',
-                    'composition': 'Tetesan air dan kristal es'
-                }
+        'weather_forecast': '⛅ Bisa menjadi tanda perubahan cuaca dalam 12-24 jam',
+        'precipitation': 'Biasanya tidak menghasilkan hujan',
+        'icon': '⛅'
+    },
+
+    "3_cirrus_cirrostratus": {
+        'category': 'High-Level Clouds',
+        'types': ['Cirrus', 'Cirrostratus'],
+        'altitude': '5,000 - 13,000 meter',
+        'characteristics': [
+            '☁️ Awan tipis dan halus',
+            '❄️ Terbuat dari kristal es',
+            '🌅 Bisa menimbulkan halo pada matahari atau bulan'
+        ],
+        'cloud_details': {
+            'Cirrus': {
+                'description': 'Awan tinggi berbentuk serat halus',
+                'appearance': 'Seperti bulu burung',
+                'composition': 'Kristal es'
             },
-            'weather_forecast': '🌧️ Cuaca mendung dan basah. Hujan gerimis hingga sedang yang berkelanjutan',
-            'precipitation': 'Stratus: Gerimis ringan. Stratocumulus: Hujan ringan. Nimbostratus: Hujan sedang berkelanjutan',
-            'icon': '☁️'
+            'Cirrostratus': {
+                'description': 'Lapisan tipis menutupi langit',
+                'appearance': 'Seperti tirai putih',
+                'composition': 'Kristal es'
+            }
         },
-        
-        'CONVECTIVE': {
-            'category': 'Convective Clouds',
-            'types': ['Cumulus', 'Cumulonimbus'],
-            'altitude': '0 - 13,000 meter (vertikal, dari rendah hingga sangat tinggi)',
-            'characteristics': [
-                '⛈️ Awan konvektif dengan perkembangan vertikal kuat',
-                '🌪️ Terbentuk dari udara hangat yang naik cepat',
-                '⚡ Dapat menghasilkan cuaca ekstrem (petir, hujan deras, angin kencang)',
-                '☁️ Bentuk menjulang tinggi seperti menara atau landasan'
-            ],
-            'cloud_details': {
-                'Cumulus': {
-                    'description': 'Awan putih bergumpal dengan dasar datar',
-                    'appearance': 'Seperti kapas atau kembang kol mengembang',
-                    'composition': 'Tetesan air',
-                    'types': 'Cumulus humilis (kecil), Cumulus mediocris (sedang), Cumulus congestus (besar)'
-                },
-                'Cumulonimbus': {
-                    'description': 'Awan badai yang sangat besar dan tinggi',
-                    'appearance': 'Seperti menara raksasa dengan puncak berbentuk landasan',
-                    'composition': 'Tetesan air, kristal es, hujan, salju, es',
-                    'danger': '⚠️ BAHAYA: Dapat menghasilkan petir, hujan lebat, hujan es, tornado'
-                }
-            },
-            'weather_forecast': '⛈️ PERINGATAN: Cuaca berpotensi ekstrem! Cumulus: Cuaca cerah hingga berawan. Cumulonimbus: Badai petir, hujan sangat deras, angin kencang, kemungkinan hujan es atau tornado',
-            'precipitation': 'Cumulus: Biasanya tidak hujan. Cumulonimbus: Hujan sangat lebat (downpour) dengan intensitas tinggi',
-            'icon': '⛈️',
-            'warning': True
+        'weather_forecast': '🌤️ Umumnya cuaca baik, bisa tanda perubahan cuaca',
+        'precipitation': 'Tidak menghasilkan hujan',
+        'icon': '🌤️'
+    },
+
+    "4_clearsky": {
+        'category': 'Clear Conditions',
+        'types': ['Clear Sky'],
+        'altitude': 'N/A',
+        'characteristics': [
+            '☀️ Langit cerah tanpa awan signifikan',
+            '🌞 Visibilitas sangat baik',
+            '🌡️ Suhu dipengaruhi radiasi matahari langsung'
+        ],
+        'cloud_details': {
+            'Clear Sky': {
+                'description': 'Langit tanpa tutupan awan',
+                'appearance': 'Langit biru jernih',
+                'composition': 'N/A'
+            }
         },
-        
-        # '7_contrail': {
-        #     'category': 'Artificial Clouds',
-        #     'types': ['Contrail (Condensation Trail)'],
-        #     'altitude': '8,000 - 12,000 meter (26,000 - 40,000 kaki)',
-        #     'characteristics': [
-        #         '✈️ Jejak kondensasi dari pesawat terbang',
-        #         '❄️ Terbentuk dari uap air mesin pesawat yang membeku',
-        #         '➖ Berbentuk garis lurus atau sedikit melengkung',
-        #         '🌡️ Indikator kelembaban tinggi di atmosfer atas'
-        #     ],
-        #     'cloud_details': {
-        #         'Contrail': {
-        #             'description': 'Garis putih panjang yang terbentuk di belakang pesawat',
-        #             'appearance': 'Seperti garis lurus putih di langit',
-        #             'composition': 'Kristal es dari uap air mesin pesawat',
-        #             'persistence': 'Bisa hilang cepat atau bertahan lama tergantung kelembaban'
-        #         }
-        #     },
-        #     'weather_forecast': '✈️ Contrail sendiri tidak memprediksi cuaca, tetapi persistensinya menunjukkan kelembaban tinggi di atmosfer atas yang bisa mengindikasikan perubahan cuaca',
-        #     'precipitation': 'Tidak menghasilkan hujan',
-        #     'icon': '✈️'
-        # },
-        
-        '4_clearsky': {
-            'category': 'Clear Conditions',
-            'types': ['Clear Sky (Langit Cerah)'],
-            'altitude': 'N/A',
-            'characteristics': [
-                '☀️ Langit cerah tanpa awan atau dengan awan minimal',
-                '🌞 Visibilitas sangat baik',
-                '🌡️ Suhu dipengaruhi langsung oleh radiasi matahari',
-                '🌤️ Kondisi cuaca stabil'
-            ],
-            'cloud_details': {
-                'Clear Sky': {
-                    'description': 'Kondisi langit tanpa tutupan awan signifikan',
-                    'appearance': 'Langit biru jernih atau dengan sedikit awan',
-                    'composition': 'N/A'
-                }
+        'weather_forecast': '☀️ Cuaca cerah dan stabil',
+        'precipitation': 'Tidak ada',
+        'icon': '☀️'
+    },
+
+    "5_stratocumulus_stratus_altostratus": {
+        'category': 'Low & Mid Level Clouds',
+        'types': ['Stratocumulus', 'Stratus', 'Altostratus'],
+        'altitude': '0 - 7,000 meter',
+        'characteristics': [
+            '☁️ Awan berlapis dan menutupi langit',
+            '🌫️ Memberikan kondisi mendung',
+            '🌧️ Dapat menghasilkan hujan ringan'
+        ],
+        'cloud_details': {
+            'Stratus': {
+                'description': 'Lapisan awan rendah seragam',
+                'appearance': 'Seperti kabut',
+                'composition': 'Tetesan air kecil'
             },
-            'weather_forecast': '☀️ Cuaca cerah dan stabil. Tidak ada tanda-tanda hujan. Kondisi bagus untuk aktivitas outdoor',
-            'precipitation': 'Tidak ada',
-            'icon': '☀️'
-        }
+            'Stratocumulus': {
+                'description': 'Awan rendah bergumpal',
+                'appearance': 'Gulungan kapas gelap',
+                'composition': 'Tetesan air'
+            },
+            'Altostratus': {
+                'description': 'Lapisan awan menengah luas',
+                'appearance': 'Selimut abu-abu',
+                'composition': 'Tetesan air dan kristal es'
+            }
+        },
+        'weather_forecast': '🌥️ Cuaca mendung, kemungkinan hujan ringan',
+        'precipitation': 'Gerimis hingga hujan ringan',
+        'icon': '☁️'
+    },
+
+    "6_cumulonimbus_nimbostratus": {
+        'category': 'Rain & Storm Clouds',
+        'types': ['Cumulonimbus', 'Nimbostratus'],
+        'altitude': '0 - 13,000 meter',
+        'characteristics': [
+            '⛈️ Awan hujan tebal dan gelap',
+            '⚡ Berpotensi menghasilkan badai',
+            '🌧️ Menghasilkan hujan intens'
+        ],
+        'cloud_details': {
+            'Cumulonimbus': {
+                'description': 'Awan badai menjulang tinggi',
+                'appearance': 'Menara dengan puncak landasan',
+                'composition': 'Tetesan air dan kristal es'
+            },
+            'Nimbostratus': {
+                'description': 'Lapisan awan hujan luas',
+                'appearance': 'Gelap dan tebal',
+                'composition': 'Tetesan air'
+            }
+        },
+        'weather_forecast': '⛈️ Potensi hujan deras dan badai petir',
+        'precipitation': 'Hujan sedang hingga sangat lebat',
+        'icon': '⛈️',
+        'warning': True
     }
+}
+
     
-    # Mapping dari class name lama ke kategori baru
-    OLD_TO_NEW_MAPPING = {
-        '2_altocumulus_cirrocumulus': 'MID_CLOUD',
-        '3_cirrus_cirrostratus': 'HIGH_CLOUD',
-        '4_clearsky': '4_clearsky',
-        '5_stratocumulus_stratus_altostratus': 'LOW_CLOUD',
-        '6_cumulonimbus_nimbostratus': 'CONVECTIVE',
-        '7_contrail': '7_contrail'
-    }
+    # # Mapping dari class name lama ke kategori baru
+    # OLD_TO_NEW_MAPPING = {
+    #     '2_altocumulus_cirrocumulus': 'MID_CLOUD',
+    #     '3_cirrus_cirrostratus': 'HIGH_CLOUD',
+    #     '4_clearsky': '4_clearsky',
+    #     '5_stratocumulus_stratus_altostratus': 'LOW_CLOUD',
+    #     '6_cumulonimbus_nimbostratus': 'CONVECTIVE',
+    #     '7_contrail': '7_contrail'
+    # }
 
 # ============================================================================
 # FISHEYE PREPROCESSING FUNCTIONS
