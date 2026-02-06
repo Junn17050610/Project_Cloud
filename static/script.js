@@ -537,12 +537,6 @@ function showNotSkyError(result) {
       <div style="margin: 15px 0; font-size: 14px; line-height: 1.6;">
         ${result.message}
       </div>
-      <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left;">
-        <div style="font-weight: bold; margin-bottom: 8px;">💡 Contoh gambar yang valid:</div>
-        <div style="font-size: 13px; line-height: 1.8;">
-          ${result.detail.examples ? result.detail.examples.map(ex => `<div>${ex}</div>`).join('') : ''}
-        </div>
-      </div>
       <div style="margin-top: 15px; font-size: 12px; opacity: 0.7;">
         Confidence: ${result.detail.sky_confidence}%
       </div>
