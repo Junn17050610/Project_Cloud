@@ -1,0 +1,121 @@
+{
+    "timestamp": "20260207_132904",
+    "model_path": "1_Model_Fisheye\\model_cloud_20260207_132904.h5",
+    "architecture": "MobileNetV2 + Contour Enhancement",
+    "input_shape": [
+        224,
+        224,
+        3
+    ],
+    "classes": [
+        "1_cumulus",
+        "2_altocumulus_cirrocumulus",
+        "3_cirrus_cirrostratus",
+        "4_clearsky",
+        "5_stratocumulus_stratus_altostratus",
+        "6_cumulonimbus_nimbostratus"
+    ],
+    "num_classes": 6,
+    "preprocessing": {
+        "pattern_enhancement": true,
+        "enhancement_strength": "balanced",
+        "contour_enabled": true,
+        "contour_strength": 0.3,
+        "techniques": [
+            "LAB Color Space Processing",
+            "CLAHE on Luminance Channel",
+            "Bilateral Filtering",
+            "Multi-scale Edge Detection (Canny + Sobel)",
+            "Edge Overlay on L Channel",
+            "Morphological Dilation",
+            "Adaptive Sharpening"
+        ],
+        "improvements": "Contour visible, color preserved, texture enhanced"
+    },
+    "hyperparameters": {
+        "batch_size": 16,
+        "epochs": 50,
+        "learning_rate": 0.0001,
+        "img_size": [
+            224,
+            224
+        ]
+    },
+    "dataset": {
+        "train_samples": 1538,
+        "validation_samples": 190,
+        "test_samples": 196
+    },
+    "performance": {
+        "accuracy": 0.9336734693877551,
+        "precision": 0.9367808811425155,
+        "recall": 0.9336734693877551,
+        "f1_score": 0.9330856374807988,
+        "confusion_matrix": [
+            [
+                37,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                1,
+                36,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                5,
+                0,
+                28,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                34,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                1,
+                0,
+                20,
+                3
+            ],
+            [
+                0,
+                2,
+                0,
+                0,
+                1,
+                28
+            ]
+        ],
+        "per_class_accuracy": {
+            "1_cumulus": 100.0,
+            "2_altocumulus_cirrocumulus": 97.2972972972973,
+            "3_cirrus_cirrostratus": 84.84848484848484,
+            "4_clearsky": 100.0,
+            "5_stratocumulus_stratus_altostratus": 83.33333333333334,
+            "6_cumulonimbus_nimbostratus": 90.32258064516128
+        }
+    },
+    "training_history": {
+        "final_train_accuracy": 0.9031209349632263,
+        "final_val_accuracy": 0.9315789341926575,
+        "final_train_loss": 0.49294018745422363,
+        "final_val_loss": 0.3742973208427429,
+        "best_epoch": 33,
+        "total_epochs_trained": 50
+    }
+}

@@ -362,14 +362,8 @@
 
 """
 app.py
-Flask Backend API - Cloud Classification with Detailed Weather Prediction
-Kategori: HIGH_CLOUD, MID_CLOUD, LOW_CLOUD, CONVECTIVE, CONTRAIL, CLEAR_SKY
-"""
-
-"""
-app.py
-Flask Backend API - Cloud Classification with Fisheye Preprocessing
-Otomatis mendeteksi dan memproses gambar fisheye dari kamera handphone
+Flask Backend API - Cloud Classification
+Alur: Upload → Sky Detection → Fisheye Conversion → Contour Enhancement → Classification
 """
 
 from flask import Flask, request, jsonify, render_template
@@ -393,356 +387,202 @@ CORS(app)
 class Config:
     # Path models
     SKY_DETECTOR_PATH = 'new_sky_detection_1/model_weather_cnn_20260206_174556.h5'
-    CLOUD_MODEL_PATH = 'models_cloud_Similarity_Fisheye_4/model_cloud_classification_20260206_092744.h5'
-    CLOUD_METADATA_PATH = 'results_cloud_Similarity_Fisheye_4/model_metadata_20260206_092744.json'
+    CLOUD_MODEL_PATH = '1_Model_Fisheye/model_cloud_20260207_132904.h5'  # Model yang dilatih dengan fisheye+contour
+    CLOUD_METADATA_PATH = '1_Result_Fisheye/model_metadata_20260207_132904.json'
     
     IMG_SIZE = (224, 224)
     SKY_CONFIDENCE_THRESHOLD = 0.7
     
-    # Fisheye preprocessing config
-    FISHEYE_DETECTION_THRESHOLD = 0.3  # Threshold untuk deteksi otomatis fisheye
-    ENABLE_AUTO_FISHEYE_CORRECTION = True  # Auto-correct fisheye jika terdeteksi
+    # Fisheye conversion settings (CONVERT normal image TO fisheye)
+    ENABLE_FISHEYE_CONVERSION = True
+    FISHEYE_STRENGTH = 1.5  # Strength untuk convert ke fisheye
     
-    # KATEGORI dengan detail lengkap
+    # Contour enhancement settings (sesuai training)
+    ENABLE_CONTOUR_ENHANCEMENT = True
+    CONTOUR_STRENGTH = 0.3
+    ENHANCEMENT_STRENGTH = 'balanced'
+    
+    # Cloud categories
     CLASS_MAPPING = {
-
-    "1_cumulus": {
-        'category': 'Convective Clouds',
-        'types': ['Cumulus'],
-        'altitude': '500 - 2,000 meter',
-        'characteristics': [
-            '☁️ Awan putih bergumpal dengan dasar datar',
-            '🌤️ Biasanya muncul saat cuaca cerah',
-            '🌡️ Terbentuk dari udara hangat yang naik',
-            '📈 Dapat berkembang menjadi awan badai'
-        ],
-        'cloud_details': {
-            'Cumulus': {
-                'description': 'Awan putih bergumpal dengan dasar datar',
-                'appearance': 'Seperti kapas atau kembang kol',
-                'composition': 'Tetesan air'
-            }
+        "1_cumulus": {
+            'category': 'Convective Clouds',
+            'types': ['Cumulus'],
+            'altitude': '500 - 2,000 meter',
+            'characteristics': [
+                '☁️ Awan putih bergumpal dengan dasar datar',
+                '🌤️ Biasanya muncul saat cuaca cerah',
+                '🌡️ Terbentuk dari udara hangat yang naik'
+            ],
+            'weather_forecast': '🌤️ Umumnya menandakan cuaca cerah',
+            'precipitation': 'Biasanya tidak hujan',
+            'icon': '🌤️'
         },
-        'weather_forecast': '🌤️ Umumnya menandakan cuaca cerah',
-        'precipitation': 'Biasanya tidak hujan',
-        'icon': '🌤️'
-    },
-
-    "2_altocumulus_cirrocumulus": {
-        'category': 'Mid & High Level Clouds',
-        'types': ['Altocumulus', 'Cirrocumulus'],
-        'altitude': '2,000 - 7,000 meter',
-        'characteristics': [
-            '☁️ Awan bergelombang atau berbintik kecil',
-            '⚪ Berwarna putih hingga abu-abu',
-            '🌥️ Dapat menandakan perubahan cuaca'
-        ],
-        'cloud_details': {
-            'Altocumulus': {
-                'description': 'Awan menengah berbentuk gumpalan atau lembaran',
-                'appearance': 'Seperti kapas bergelombang',
-                'composition': 'Tetesan air dan kristal es'
-            },
-            'Cirrocumulus': {
-                'description': 'Awan tinggi berbentuk butiran kecil',
-                'appearance': 'Seperti sisik ikan',
-                'composition': 'Kristal es'
-            }
+        "2_altocumulus_cirrocumulus": {
+            'category': 'Mid & High Level Clouds',
+            'types': ['Altocumulus', 'Cirrocumulus'],
+            'altitude': '2,000 - 7,000 meter',
+            'characteristics': [
+                '☁️ Awan bergelombang atau berbintik kecil',
+                '⚪ Berwarna putih hingga abu-abu'
+            ],
+            'weather_forecast': '⛅ Bisa menjadi tanda perubahan cuaca dalam 12-24 jam',
+            'precipitation': 'Biasanya tidak menghasilkan hujan',
+            'icon': '⛅'
         },
-        'weather_forecast': '⛅ Bisa menjadi tanda perubahan cuaca dalam 12-24 jam',
-        'precipitation': 'Biasanya tidak menghasilkan hujan',
-        'icon': '⛅'
-    },
-
-    "3_cirrus_cirrostratus": {
-        'category': 'High-Level Clouds',
-        'types': ['Cirrus', 'Cirrostratus'],
-        'altitude': '5,000 - 13,000 meter',
-        'characteristics': [
-            '☁️ Awan tipis dan halus',
-            '❄️ Terbuat dari kristal es',
-            '🌅 Bisa menimbulkan halo pada matahari atau bulan'
-        ],
-        'cloud_details': {
-            'Cirrus': {
-                'description': 'Awan tinggi berbentuk serat halus',
-                'appearance': 'Seperti bulu burung',
-                'composition': 'Kristal es'
-            },
-            'Cirrostratus': {
-                'description': 'Lapisan tipis menutupi langit',
-                'appearance': 'Seperti tirai putih',
-                'composition': 'Kristal es'
-            }
+        "3_cirrus_cirrostratus": {
+            'category': 'High-Level Clouds',
+            'types': ['Cirrus', 'Cirrostratus'],
+            'altitude': '5,000 - 13,000 meter',
+            'characteristics': [
+                '☁️ Awan tipis dan halus',
+                '❄️ Terbuat dari kristal es'
+            ],
+            'weather_forecast': '🌤️ Umumnya cuaca baik, bisa tanda perubahan cuaca',
+            'precipitation': 'Tidak menghasilkan hujan',
+            'icon': '🌤️'
         },
-        'weather_forecast': '🌤️ Umumnya cuaca baik, bisa tanda perubahan cuaca',
-        'precipitation': 'Tidak menghasilkan hujan',
-        'icon': '🌤️'
-    },
-
-    "4_clearsky": {
-        'category': 'Clear Conditions',
-        'types': ['Clear Sky'],
-        'altitude': 'N/A',
-        'characteristics': [
-            '☀️ Langit cerah tanpa awan signifikan',
-            '🌞 Visibilitas sangat baik',
-            '🌡️ Suhu dipengaruhi radiasi matahari langsung'
-        ],
-        'cloud_details': {
-            'Clear Sky': {
-                'description': 'Langit tanpa tutupan awan',
-                'appearance': 'Langit biru jernih',
-                'composition': 'N/A'
-            }
+        "4_clearsky": {
+            'category': 'Clear Conditions',
+            'types': ['Clear Sky'],
+            'altitude': 'N/A',
+            'characteristics': [
+                '☀️ Langit cerah tanpa awan signifikan',
+                '🌞 Visibilitas sangat baik'
+            ],
+            'weather_forecast': '☀️ Cuaca cerah dan stabil',
+            'precipitation': 'Tidak ada',
+            'icon': '☀️'
         },
-        'weather_forecast': '☀️ Cuaca cerah dan stabil',
-        'precipitation': 'Tidak ada',
-        'icon': '☀️'
-    },
-
-    "5_stratocumulus_stratus_altostratus": {
-        'category': 'Low & Mid Level Clouds',
-        'types': ['Stratocumulus', 'Stratus', 'Altostratus'],
-        'altitude': '0 - 7,000 meter',
-        'characteristics': [
-            '☁️ Awan berlapis dan menutupi langit',
-            '🌫️ Memberikan kondisi mendung',
-            '🌧️ Dapat menghasilkan hujan ringan'
-        ],
-        'cloud_details': {
-            'Stratus': {
-                'description': 'Lapisan awan rendah seragam',
-                'appearance': 'Seperti kabut',
-                'composition': 'Tetesan air kecil'
-            },
-            'Stratocumulus': {
-                'description': 'Awan rendah bergumpal',
-                'appearance': 'Gulungan kapas gelap',
-                'composition': 'Tetesan air'
-            },
-            'Altostratus': {
-                'description': 'Lapisan awan menengah luas',
-                'appearance': 'Selimut abu-abu',
-                'composition': 'Tetesan air dan kristal es'
-            }
+        "5_stratocumulus_stratus_altostratus": {
+            'category': 'Low & Mid Level Clouds',
+            'types': ['Stratocumulus', 'Stratus', 'Altostratus'],
+            'altitude': '0 - 7,000 meter',
+            'characteristics': [
+                '☁️ Awan berlapis dan menutupi langit',
+                '🌧️ Dapat menghasilkan hujan ringan'
+            ],
+            'weather_forecast': '🌥️ Cuaca mendung, kemungkinan hujan ringan',
+            'precipitation': 'Gerimis hingga hujan ringan',
+            'icon': '☁️'
         },
-        'weather_forecast': '🌥️ Cuaca mendung, kemungkinan hujan ringan',
-        'precipitation': 'Gerimis hingga hujan ringan',
-        'icon': '☁️'
-    },
-
-    "6_cumulonimbus_nimbostratus": {
-        'category': 'Rain & Storm Clouds',
-        'types': ['Cumulonimbus', 'Nimbostratus'],
-        'altitude': '0 - 13,000 meter',
-        'characteristics': [
-            '⛈️ Awan hujan tebal dan gelap',
-            '⚡ Berpotensi menghasilkan badai',
-            '🌧️ Menghasilkan hujan intens'
-        ],
-        'cloud_details': {
-            'Cumulonimbus': {
-                'description': 'Awan badai menjulang tinggi',
-                'appearance': 'Menara dengan puncak landasan',
-                'composition': 'Tetesan air dan kristal es'
-            },
-            'Nimbostratus': {
-                'description': 'Lapisan awan hujan luas',
-                'appearance': 'Gelap dan tebal',
-                'composition': 'Tetesan air'
-            }
-        },
-        'weather_forecast': '⛈️ Potensi hujan deras dan badai petir',
-        'precipitation': 'Hujan sedang hingga sangat lebat',
-        'icon': '⛈️',
-        'warning': True
-    }
-}
-
-    
-    # Mapping dari class name lama ke kategori baru
-    OLD_TO_NEW_MAPPING = {
-        '1_cumulus' : '1_cumulus',
-        '2_altocumulus_cirrocumulus': 'MID_CLOUD',
-        '3_cirrus_cirrostratus': '3_cirrus_cirrostratus',
-        '4_clearsky': '4_clearsky',
-        '5_stratocumulus_stratus_altostratus': '5_stratocumulus_stratus_altostratus',
-        '6_cumulonimbus_nimbostratus': '6_cumulonimbus_nimbostratus'
+        "6_cumulonimbus_nimbostratus": {
+            'category': 'Rain & Storm Clouds',
+            'types': ['Cumulonimbus', 'Nimbostratus'],
+            'altitude': '0 - 13,000 meter',
+            'characteristics': [
+                '⛈️ Awan hujan tebal dan gelap',
+                '⚡ Berpotensi menghasilkan badai'
+            ],
+            'weather_forecast': '⛈️ Potensi hujan deras dan badai petir',
+            'precipitation': 'Hujan sedang hingga sangat lebat',
+            'icon': '⛈️',
+            'warning': True
+        }
     }
 
 # ============================================================================
-# FISHEYE PREPROCESSING FUNCTIONS
+# PREPROCESSING FUNCTIONS
 # ============================================================================
 
-class FisheyePreprocessor:
-    """Class untuk mendeteksi dan mengoreksi distorsi fisheye"""
+class CloudImagePreprocessor:
+    """
+    Preprocessing pipeline: Normal Image → Fisheye → Contour Enhancement
+    """
     
     @staticmethod
-    def detect_fisheye(image):
+    def apply_fisheye_effect(img_array, strength=1.5):
         """
-        Deteksi apakah gambar mengandung distorsi fisheye
-        Returns: (is_fisheye: bool, confidence: float)
+        Convert normal image TO fisheye (sesuai dengan training data)
         """
-        # Convert ke grayscale
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        else:
-            gray = image
+        height, width = img_array.shape[:2]
         
-        h, w = gray.shape
-        
-        # Cek aspect ratio dan circular edges
-        # Gambar fisheye biasanya memiliki:
-        # 1. Edge detection tinggi di area circular
-        # 2. Brightness yang lebih gelap di edges
-        
-        # Edge detection
-        edges = cv2.Canny(gray, 50, 150)
-        
-        # Hitung edge density di corners vs center
-        corner_size = min(h, w) // 6
-        
-        # Corner regions (4 corners)
-        corners_density = 0
-        corners_density += np.mean(edges[0:corner_size, 0:corner_size])  # Top-left
-        corners_density += np.mean(edges[0:corner_size, -corner_size:])  # Top-right
-        corners_density += np.mean(edges[-corner_size:, 0:corner_size])  # Bottom-left
-        corners_density += np.mean(edges[-corner_size:, -corner_size:])  # Bottom-right
-        corners_density /= 4
-        
-        # Center region
-        cy, cx = h // 2, w // 2
-        center_radius = min(h, w) // 4
-        center_region = edges[cy-center_radius:cy+center_radius, cx-center_radius:cx+center_radius]
-        center_density = np.mean(center_region) if center_region.size > 0 else 0
-        
-        # Fisheye biasanya punya corner yang lebih gelap/lebih banyak edge
-        # karena distorsi dan vignetting
-        if corners_density > 0:
-            ratio = center_density / corners_density
-        else:
-            ratio = 1.0
-        
-        # Cek circular pattern menggunakan brightness
-        # Fisheye biasanya lebih gelap di edges (vignetting)
-        brightness_corners = 0
-        brightness_corners += np.mean(gray[0:corner_size, 0:corner_size])
-        brightness_corners += np.mean(gray[0:corner_size, -corner_size:])
-        brightness_corners += np.mean(gray[-corner_size:, 0:corner_size])
-        brightness_corners += np.mean(gray[-corner_size:, -corner_size:])
-        brightness_corners /= 4
-        
-        center_region_gray = gray[cy-center_radius:cy+center_radius, cx-center_radius:cx+center_radius]
-        brightness_center = np.mean(center_region_gray) if center_region_gray.size > 0 else 0
-        
-        # Calculate vignetting score
-        if brightness_center > 0:
-            vignetting_score = 1 - (brightness_corners / brightness_center)
-        else:
-            vignetting_score = 0
-        
-        # Combine scores
-        # Fisheye confidence berdasarkan vignetting dan edge distribution
-        fisheye_confidence = (vignetting_score * 0.7) + ((1 - min(ratio, 1.0)) * 0.3)
-        fisheye_confidence = max(0, min(1, fisheye_confidence))
-        
-        is_fisheye = bool(fisheye_confidence > Config.FISHEYE_DETECTION_THRESHOLD)
-        fisheye_confidence = float(fisheye_confidence)
-        
-        return is_fisheye, fisheye_confidence
-    
-    @staticmethod
-    def apply_fisheye_inverse(image, strength=1.5):
-        """
-        Mengoreksi distorsi fisheye dengan inverse transformation
-        """
-        height, width = image.shape[:2]
-        
-        # Koordinat pusat
         cx, cy = width // 2, height // 2
-        
-        # Radius maksimum
         max_radius = min(cx, cy)
         
-        # Buat mesh grid
+        # Mesh grid
         y, x = np.mgrid[0:height, 0:width]
-        
-        # Hitung jarak dari pusat
         dx = x - cx
         dy = y - cy
         distance = np.sqrt(dx**2 + dy**2)
-        
-        # Normalisasi jarak
         normalized_distance = distance / max_radius
         
-        # INVERSE fisheye transformation
-        # Untuk mengoreksi fisheye, kita lakukan kebalikan dari distorsi
-        corrected_distance = normalized_distance ** (1.0 / strength)
+        # Apply fisheye transformation (FORWARD, not inverse!)
+        fisheye_distance = normalized_distance ** strength
         
-        # Hitung koordinat baru
+        # Calculate new coordinates
         angle = np.arctan2(dy, dx)
-        new_distance = corrected_distance * max_radius
-        
+        new_distance = fisheye_distance * max_radius
         new_x = (cx + new_distance * np.cos(angle)).astype(np.float32)
         new_y = (cy + new_distance * np.sin(angle)).astype(np.float32)
         
         # Apply transformation
-        corrected = cv2.remap(image, new_x, new_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        fisheye_img = cv2.remap(img_array, new_x, new_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
         
-        return corrected
+        # Create circular mask
+        mask = np.zeros((height, width), dtype=np.uint8)
+        cv2.circle(mask, (cx, cy), max_radius, 255, -1)
+        
+        if len(fisheye_img.shape) == 3:
+            mask_3ch = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+            fisheye_img = cv2.bitwise_and(fisheye_img, mask_3ch)
+        
+        return fisheye_img
     
     @staticmethod
-    def process_image(pil_image, auto_correct=True):
+    def enhance_with_contours(img_array, strength='balanced', contour_strength=0.3):
         """
-        Main preprocessing function
-        Args:
-            pil_image: PIL Image object
-            auto_correct: Jika True, otomatis koreksi jika fisheye terdeteksi
-        Returns:
-            (processed_image: PIL.Image, metadata: dict)
+        Enhance cloud patterns dengan contour (sesuai training)
         """
-        # Convert PIL to numpy array
-        img_array = np.array(pil_image)
+        # Convert to LAB
+        lab = cv2.cvtColor(img_array, cv2.COLOR_RGB2LAB)
+        l_channel, a_channel, b_channel = cv2.split(lab)
         
-        # Deteksi fisheye
-        is_fisheye, fisheye_confidence = FisheyePreprocessor.detect_fisheye(img_array)
+        # CLAHE
+        strength_params = {'subtle': 1.5, 'balanced': 2.0, 'strong': 2.5}
+        clip_limit = strength_params.get(strength, 2.0)
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+        l_enhanced = clahe.apply(l_channel)
         
-        metadata = {
-            'fisheye_detected': is_fisheye,
-            'fisheye_confidence': round(fisheye_confidence * 100, 2),
-            'correction_applied': False,
-            'original_size': pil_image.size
-        }
+        # Edge detection
+        l_bilateral = cv2.bilateralFilter(l_enhanced, 9, 75, 75)
+        edges_canny = cv2.Canny(l_bilateral, 40, 120)
         
-        # Jika fisheye terdeteksi dan auto_correct enabled
-        if is_fisheye and auto_correct:
-            print(f"  📸 Fisheye detected (confidence: {fisheye_confidence*100:.1f}%), applying correction...")
-            
-            # Tentukan strength koreksi berdasarkan confidence
-            # Semakin tinggi confidence fisheye, semakin kuat koreksi
-            correction_strength = 1.2 + (fisheye_confidence * 0.8)  # Range: 1.2 - 2.0
-            
-            corrected = FisheyePreprocessor.apply_fisheye_inverse(img_array, strength=correction_strength)
-            
-            # Convert back to PIL
-            processed_pil = Image.fromarray(corrected.astype('uint8'))
-            
-            metadata['correction_applied'] = True
-            metadata['correction_strength'] = round(correction_strength, 2)
-            
-            return processed_pil, metadata
+        # Sobel
+        sobelx = cv2.Sobel(l_bilateral, cv2.CV_64F, 1, 0, ksize=3)
+        sobely = cv2.Sobel(l_bilateral, cv2.CV_64F, 0, 1, ksize=3)
+        sobel_mag = np.sqrt(sobelx**2 + sobely**2)
+        sobel_mag = np.uint8(255 * sobel_mag / (np.max(sobel_mag) + 1e-5))
+        
+        # Combine edges
+        edges_combined = cv2.addWeighted(edges_canny, 0.6, sobel_mag, 0.4, 0)
+        kernel = np.ones((2, 2), np.uint8)
+        edges_dilated = cv2.dilate(edges_combined, kernel, iterations=1)
+        
+        # Overlay edges to L channel
+        l_with_edges = cv2.addWeighted(l_enhanced, 1.0, edges_dilated, contour_strength, 0)
+        l_with_edges = np.clip(l_with_edges, 0, 255).astype(np.uint8)
+        
+        # Sharpening
+        if strength in ['balanced', 'strong']:
+            gaussian = cv2.GaussianBlur(l_with_edges, (0, 0), 1.5)
+            sharp_amount = 0.4 if strength == 'balanced' else 0.6
+            l_final = cv2.addWeighted(l_with_edges, 1.0 + sharp_amount, gaussian, -sharp_amount, 0)
+            l_final = np.clip(l_final, 0, 255).astype(np.uint8)
         else:
-            if is_fisheye:
-                print(f"  📸 Fisheye detected but correction disabled")
-            
-            return pil_image, metadata
+            l_final = l_with_edges
+        
+        # Merge back
+        lab_enhanced = cv2.merge([l_final, a_channel, b_channel])
+        rgb_enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2RGB)
+        
+        return rgb_enhanced
 
 # ============================================================================
 # LOAD MODELS
 # ============================================================================
+
 print("=" * 80)
-print("CLOUD WEATHER PREDICTION API WITH FISHEYE PREPROCESSING")
+print("CLOUD CLASSIFICATION API - FISHEYE + CONTOUR ENHANCED")
 print("=" * 80)
 
 # Load Sky Detector
@@ -751,139 +591,84 @@ sky_classes = None
 
 if os.path.exists(Config.SKY_DETECTOR_PATH):
     try:
-        print(f"\n[Stage 1] Loading Sky Detector: {Config.SKY_DETECTOR_PATH}")
+        print(f"\n[Model 1] Loading Sky Detector...")
         sky_detector = keras.models.load_model(Config.SKY_DETECTOR_PATH)
-        print("✓ Sky Detector loaded successfully")
+        print("✓ Sky Detector loaded")
         sky_classes = {0: 'bukan_langit', 1: 'langit'}
     except Exception as e:
-        print(f"⚠ Warning: Sky Detector gagal dimuat: {str(e)}")
+        print(f"⚠ Sky Detector error: {str(e)}")
 
 # Load Cloud Classifier
 cloud_model = None
-metadata = None
 
 try:
-    print(f"\n[Stage 2] Loading Cloud Model: {Config.CLOUD_MODEL_PATH}")
+    print(f"\n[Model 2] Loading Cloud Classifier...")
     cloud_model = keras.models.load_model(Config.CLOUD_MODEL_PATH)
-    print("✓ Cloud Model loaded successfully")
+    print("✓ Cloud Model loaded")
     
     if os.path.exists(Config.CLOUD_METADATA_PATH):
         with open(Config.CLOUD_METADATA_PATH, 'r') as f:
             metadata = json.load(f)
         print(f"✓ Metadata loaded - Accuracy: {metadata['performance']['accuracy']*100:.2f}%")
-        Config.OLD_CLASSES = metadata.get('classes', list(Config.OLD_TO_NEW_MAPPING.keys()))
+        Config.CLASSES = metadata.get('classes', list(Config.CLASS_MAPPING.keys()))
     else:
-        Config.OLD_CLASSES = list(Config.OLD_TO_NEW_MAPPING.keys())
+        Config.CLASSES = list(Config.CLASS_MAPPING.keys())
         
 except Exception as e:
-    print(f"✗ Error loading Cloud Model: {str(e)}")
+    print(f"✗ Cloud Model error: {str(e)}")
 
-print("\n[Fisheye Preprocessing]")
-print(f"  Auto-detection: {'ENABLED ✓' if Config.ENABLE_AUTO_FISHEYE_CORRECTION else 'DISABLED ✗'}")
-print(f"  Detection threshold: {Config.FISHEYE_DETECTION_THRESHOLD * 100}%")
-
+print("\n[Preprocessing Pipeline]")
+print(f"  1. Fisheye Conversion: {'ENABLED' if Config.ENABLE_FISHEYE_CONVERSION else 'DISABLED'}")
+print(f"  2. Contour Enhancement: {'ENABLED' if Config.ENABLE_CONTOUR_ENHANCEMENT else 'DISABLED'}")
 print("=" * 80)
 
 # ============================================================================
-# UTILITY FUNCTIONS
+# PREPROCESSING PIPELINE
 # ============================================================================
 
-def preprocess_image(image_bytes, apply_fisheye_correction=True):
+def preprocess_image(image_bytes):
     """
-    Preprocess image dengan fisheye correction
-    Args:
-        image_bytes: Raw image bytes
-        apply_fisheye_correction: Enable/disable fisheye correction
-    Returns:
-        (preprocessed_array, preprocessing_metadata)
+    Complete preprocessing pipeline
     """
     # Load image
     img = Image.open(io.BytesIO(image_bytes))
     if img.mode != 'RGB':
         img = img.convert('RGB')
     
-    # Apply fisheye preprocessing jika enabled
-    preprocessing_metadata = {}
-    if apply_fisheye_correction and Config.ENABLE_AUTO_FISHEYE_CORRECTION:
-        img, fisheye_meta = FisheyePreprocessor.process_image(img, auto_correct=True)
-        preprocessing_metadata['fisheye'] = fisheye_meta
-    
-    # Resize untuk model
+    # Resize first
     img = img.resize(Config.IMG_SIZE)
-    img_array = np.array(img).astype('float32') / 255.0
+    img_array = np.array(img).astype(np.uint8)
     
-    return np.expand_dims(img_array, axis=0), preprocessing_metadata
-
-def get_specific_cloud_type(old_class, confidence_scores):
-    """Menentukan jenis awan spesifik"""
-    specific_mapping = {
-        '2_altocumulus_cirrocumulus': ['Altocumulus', 'Cirrocumulus'],
-        '3_cirrus_cirrostratus': ['Cirrus', 'Cirrostratus'],
-        '5_stratocumulus_stratus_altostratus': ['Stratocumulus', 'Stratus', 'Altostratus'],
-        '6_cumulonimbus_nimbostratus': ['Cumulonimbus', 'Nimbostratus']
+    preprocessing_steps = []
+    
+    # Step 1: Convert to Fisheye
+    if Config.ENABLE_FISHEYE_CONVERSION:
+        img_array = CloudImagePreprocessor.apply_fisheye_effect(
+            img_array,
+            strength=Config.FISHEYE_STRENGTH
+        )
+        preprocessing_steps.append('Fisheye Conversion')
+    
+    # Step 2: Contour Enhancement
+    if Config.ENABLE_CONTOUR_ENHANCEMENT:
+        img_array = CloudImagePreprocessor.enhance_with_contours(
+            img_array,
+            strength=Config.ENHANCEMENT_STRENGTH,
+            contour_strength=Config.CONTOUR_STRENGTH
+        )
+        preprocessing_steps.append('Contour Enhancement')
+    
+    # Normalize for model
+    img_normalized = img_array.astype('float32') / 255.0
+    img_batch = np.expand_dims(img_normalized, axis=0)
+    
+    metadata = {
+        'preprocessing_steps': preprocessing_steps,
+        'fisheye_applied': Config.ENABLE_FISHEYE_CONVERSION,
+        'contour_applied': Config.ENABLE_CONTOUR_ENHANCEMENT
     }
     
-    if old_class in specific_mapping:
-        return specific_mapping[old_class][0]
-    
-    return None
-
-def generate_detailed_explanation(old_class, confidence, all_probabilities):
-    """Generate detailed explanation"""
-    new_category = Config.OLD_TO_NEW_MAPPING.get(old_class, old_class)
-    category_info = Config.CLASS_MAPPING.get(new_category, {})
-    specific_cloud = get_specific_cloud_type(old_class, all_probabilities)
-    
-    explanation = {
-        'category': new_category,
-        'category_name': category_info.get('category', 'Unknown'),
-        'specific_cloud_type': specific_cloud,
-        'confidence': confidence,
-        'cloud_types_in_category': category_info.get('types', []),
-        'altitude': category_info.get('altitude', 'Unknown'),
-        'characteristics': category_info.get('characteristics', []),
-        'cloud_details': category_info.get('cloud_details', {}),
-        'weather_forecast': category_info.get('weather_forecast', 'Unknown'),
-        'precipitation': category_info.get('precipitation', 'Unknown'),
-        'icon': category_info.get('icon', '☁️'),
-        'is_warning': category_info.get('warning', False)
-    }
-    
-    types = category_info.get('types', ['Unknown'])
-    
-    if specific_cloud:
-        explanation['main_text'] = f"Awan yang terdeteksi adalah <strong>{specific_cloud}</strong>"
-        if len(types) > 1:
-            other_types = [t for t in types if t != specific_cloud]
-            if other_types:
-                explanation['main_text'] += f", yang termasuk dalam kategori <strong>{new_category}</strong> bersama dengan {', '.join(other_types)}"
-        else:
-            explanation['main_text'] += f" (kategori <strong>{new_category}</strong>)"
-    else:
-        if len(types) == 1:
-            explanation['main_text'] = f"Terdeteksi <strong>{types[0]}</strong>"
-        else:
-            types_str = ', '.join(types[:-1]) + f" dan {types[-1]}"
-            explanation['main_text'] = f"Terdeteksi awan kategori <strong>{new_category}</strong>, yang meliputi {types_str}"
-    
-    explanation['main_text'] += f" dengan tingkat keyakinan <strong>{confidence:.1f}%</strong>."
-    
-    return explanation
-
-def safe_json(obj):
-    if isinstance(obj, np.bool_):
-        return bool(obj)
-    if isinstance(obj, np.integer):
-        return int(obj)
-    if isinstance(obj, np.floating):
-        return float(obj)
-    if isinstance(obj, tuple):
-        return list(obj)
-    if isinstance(obj, dict):
-        return {k: safe_json(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [safe_json(v) for v in obj]
-    return obj
+    return img_batch, metadata
 
 # ============================================================================
 # API ENDPOINTS
@@ -893,162 +678,137 @@ def safe_json(obj):
 def home():
     return jsonify({
         'status': 'online',
-        'service': 'Cloud Weather Prediction API',
-        'version': '2.1',
-        'features': {
-            'fisheye_preprocessing': Config.ENABLE_AUTO_FISHEYE_CORRECTION,
-            'sky_detection': sky_detector is not None,
-            'cloud_classification': cloud_model is not None
-        },
-        'categories': list(Config.CLASS_MAPPING.keys())
+        'service': 'Cloud Classification API',
+        'preprocessing': {
+            'fisheye_conversion': Config.ENABLE_FISHEYE_CONVERSION,
+            'contour_enhancement': Config.ENABLE_CONTOUR_ENHANCEMENT
+        }
     })
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """
-    Cloud Classification with Fisheye Preprocessing
-    
-    Form parameters:
-    - image: Image file (required)
-    - disable_fisheye_correction: Set to 'true' to disable fisheye correction (optional)
+    Cloud Classification Pipeline:
+    1. Sky Detection
+    2. Fisheye Conversion
+    3. Contour Enhancement
+    4. Classification
     """
     
     if cloud_model is None:
-        return jsonify({
-            'status': 'error',
-            'message': 'Cloud model belum dimuat'
-        }), 500
+        return jsonify({'status': 'error', 'message': 'Model belum dimuat'}), 500
     
     if 'image' not in request.files:
-        return jsonify({
-            'status': 'error',
-            'message': 'Tidak ada file gambar yang diupload'
-        }), 400
+        return jsonify({'status': 'error', 'message': 'Tidak ada gambar'}), 400
     
     file = request.files['image']
     if file.filename == '':
-        return jsonify({
-            'status': 'error',
-            'message': 'File gambar kosong'
-        }), 400
+        return jsonify({'status': 'error', 'message': 'File kosong'}), 400
     
     try:
-        # Check jika user ingin disable fisheye correction
-        disable_correction = request.form.get('disable_fisheye_correction', 'false').lower() == 'true'
-        apply_correction = not disable_correction
+        print("\n" + "="*60)
+        print("NEW REQUEST")
+        print("="*60)
         
-        # Read and preprocess image
         image_bytes = file.read()
-        processed_image, preprocessing_meta = preprocess_image(image_bytes, apply_fisheye_correction=apply_correction)
-        
-        print("\n" + "="*50)
-        print("PROCESSING NEW REQUEST")
-        print("="*50)
-        
-        if 'fisheye' in preprocessing_meta:
-            fisheye_info = preprocessing_meta['fisheye']
-            print(f"📸 Fisheye Detection:")
-            print(f"  - Detected: {'Yes' if fisheye_info['fisheye_detected'] else 'No'}")
-            print(f"  - Confidence: {fisheye_info['fisheye_confidence']}%")
-            print(f"  - Correction Applied: {'Yes' if fisheye_info['correction_applied'] else 'No'}")
         
         # ====== STAGE 1: SKY DETECTION ======
+        print("\n[Stage 1] Sky Detection...")
+        
+        # Quick preprocess for sky detection
+        img_temp = Image.open(io.BytesIO(image_bytes))
+        if img_temp.mode != 'RGB':
+            img_temp = img_temp.convert('RGB')
+        img_temp = img_temp.resize(Config.IMG_SIZE)
+        img_temp_array = np.array(img_temp).astype('float32') / 255.0
+        img_temp_batch = np.expand_dims(img_temp_array, axis=0)
+        
         is_sky = True
         sky_confidence = 1.0
-        sky_class_name = "unknown"
         
         if sky_detector is not None:
-            print("\n[Stage 1] Sky Detection...")
-            sky_predictions = sky_detector.predict(processed_image, verbose=0)
-            sky_class_idx = np.argmax(sky_predictions[0])
-            sky_confidence = float(sky_predictions[0][sky_class_idx])
-            sky_class_name = sky_classes.get(sky_class_idx, 'unknown')
+            sky_pred = sky_detector.predict(img_temp_batch, verbose=0)
+            sky_idx = np.argmax(sky_pred[0])
+            sky_confidence = float(sky_pred[0][sky_idx])
+            sky_class = sky_classes.get(sky_idx, 'unknown')
             
-            print(f"  Result: {sky_class_name} ({sky_confidence*100:.2f}%)")
+            print(f"  Result: {sky_class} ({sky_confidence*100:.1f}%)")
             
-            if sky_class_idx == 0 or sky_confidence < Config.SKY_CONFIDENCE_THRESHOLD:
+            if sky_idx == 0 or sky_confidence < Config.SKY_CONFIDENCE_THRESHOLD:
                 is_sky = False
         
         if not is_sky:
             return jsonify({
                 'status': 'error',
                 'error_type': 'not_sky_image',
-                'message': 'Gambar yang diupload bukan gambar langit/awan',
+                'message': 'Gambar bukan langit/awan',
                 'detail': {
-                    'is_sky': False,
-                    'predicted_class': sky_class_name,
                     'sky_confidence': round(sky_confidence * 100, 2),
-                    'preprocessing': preprocessing_meta,
-                    'suggestion': 'Silakan upload gambar langit atau awan untuk prediksi cuaca'
+                    'suggestion': 'Upload gambar langit atau awan'
                 }
             }), 400
         
-        # ====== STAGE 2: CLOUD CLASSIFICATION ======
-        print("\n[Stage 2] Cloud Classification...")
+        # ====== STAGE 2: PREPROCESSING ======
+        print("\n[Stage 2] Preprocessing...")
+        processed_image, preproc_meta = preprocess_image(image_bytes)
+        
+        print(f"  Steps: {', '.join(preproc_meta['preprocessing_steps'])}")
+        
+        # ====== STAGE 3: CLASSIFICATION ======
+        print("\n[Stage 3] Cloud Classification...")
+        
         predictions = cloud_model.predict(processed_image, verbose=0)
         predicted_idx = np.argmax(predictions[0])
         confidence = float(predictions[0][predicted_idx]) * 100
-        old_predicted_class = Config.OLD_CLASSES[predicted_idx]
+        predicted_class = Config.CLASSES[predicted_idx]
         
-        print(f"  Predicted: {old_predicted_class} ({confidence:.2f}%)")
+        print(f"  Predicted: {predicted_class} ({confidence:.1f}%)")
         
-        # Generate detailed explanation
-        explanation = generate_detailed_explanation(
-            old_predicted_class, 
-            confidence, 
-            predictions[0]
-        )
+        # Get cloud info
+        cloud_info = Config.CLASS_MAPPING.get(predicted_class, {})
         
-        # Category probabilities
-        category_probabilities = {}
-        for i, old_class in enumerate(Config.OLD_CLASSES):
-            new_cat = Config.OLD_TO_NEW_MAPPING.get(old_class, old_class)
-            prob = float(predictions[0][i]) * 100
-            if new_cat in category_probabilities:
-                category_probabilities[new_cat] = max(category_probabilities[new_cat], prob)
-            else:
-                category_probabilities[new_cat] = prob
+        # Build explanation
+        types = cloud_info.get('types', ['Unknown'])
+        if len(types) == 1:
+            explanation = f"Terdeteksi <strong>{types[0]}</strong>"
+        else:
+            explanation = f"Terdeteksi {' atau '.join(types)}"
+        explanation += f" dengan keyakinan <strong>{confidence:.1f}%</strong>"
         
-        sorted_probs = sorted(category_probabilities.items(), key=lambda x: x[1], reverse=True)
+        # Probabilities
+        probs = {
+            Config.CLASSES[i]: float(predictions[0][i]) * 100
+            for i in range(len(Config.CLASSES))
+        }
+        sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)
         
-        print("="*50)
-        print("✓ Request completed successfully")
-        print("="*50 + "\n")
+        print("="*60)
+        print("✓ SUCCESS")
+        print("="*60 + "\n")
         
-        # return jsonify({
-        #     'status': 'success',
-        #     'data': {
-        #         'prediction': explanation['category'],
-        #         'specific_cloud_type': explanation['specific_cloud_type'],
-        #         'confidence': round(confidence, 2),
-        #         'explanation': explanation,
-        #         'probabilities': {k: round(v, 2) for k, v in sorted_probs},
-        #         'validation': {
-        #             'is_sky_image': True,
-        #             'sky_confidence': round(sky_confidence * 100, 2)
-        #         },
-        #         'preprocessing': preprocessing_meta,
-        #         'timestamp': datetime.now().isoformat()
-        #     }
-        # })
-        
-        response_data ={
+        return jsonify({
             'status': 'success',
             'data': {
-                'prediction': explanation['category'],
-                'specific_cloud_type': explanation['specific_cloud_type'],
+                'prediction': predicted_class,
                 'confidence': round(confidence, 2),
-                'explanation': explanation,
+                'cloud_info': {
+                    'explanation': explanation,
+                    'cloud_types': types,
+                    'altitude': cloud_info.get('altitude', 'Unknown'),
+                    'weather': cloud_info.get('weather_forecast', 'Unknown'),
+                    'icon': cloud_info.get('icon', '☁️'),
+                    'characteristics': cloud_info.get('characteristics', []),
+                    'precipitation': cloud_info.get('precipitation', 'Unknown')
+                },
                 'probabilities': {k: round(v, 2) for k, v in sorted_probs},
+                'preprocessing': preproc_meta,
                 'validation': {
                     'is_sky_image': True,
                     'sky_confidence': round(sky_confidence * 100, 2)
                 },
-                'preprocessing': preprocessing_meta,
                 'timestamp': datetime.now().isoformat()
             }
-        }
-        return jsonify(safe_json(response_data))
+        })
     
     except Exception as e:
         print(f"\n✗ Error: {str(e)}")
@@ -1056,57 +816,25 @@ def predict():
         traceback.print_exc()
         return jsonify({
             'status': 'error',
-            'message': f'Error saat prediksi: {str(e)}'
+            'message': f'Error: {str(e)}'
         }), 500
 
-@app.route('/api/categories', methods=['GET'])
-def get_categories():
-    """Get all cloud categories information"""
-    return jsonify({
-        'status': 'success',
-        'categories': Config.CLASS_MAPPING
-    })
-
-@app.route('/api/config', methods=['GET'])
-def get_config():
-    """Get current API configuration"""
-    return jsonify({
-        'status': 'success',
-        'config': {
-            'fisheye_preprocessing': {
-                'enabled': Config.ENABLE_AUTO_FISHEYE_CORRECTION,
-                'detection_threshold': Config.FISHEYE_DETECTION_THRESHOLD * 100,
-                'description': 'Automatic fisheye lens distortion detection and correction'
-            },
-            'image_size': Config.IMG_SIZE,
-            'sky_confidence_threshold': Config.SKY_CONFIDENCE_THRESHOLD * 100
-        }
-    })
-
 @app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check"""
+def health():
     return jsonify({
         'status': 'healthy',
         'models': {
             'sky_detector': 'loaded' if sky_detector else 'not_loaded',
             'cloud_classifier': 'loaded' if cloud_model else 'not_loaded'
-        },
-        'features': {
-            'fisheye_preprocessing': Config.ENABLE_AUTO_FISHEYE_CORRECTION
-        },
-        'timestamp': datetime.now().isoformat()
+        }
     })
 
 @app.route('/web')
 def web_ui():
-    """Web UI"""
     return render_template("index.html")
-
 
 if __name__ == '__main__':
     print("\n" + "="*80)
-    print("Starting Flask Server...")
-    print("Fisheye preprocessing: ENABLED" if Config.ENABLE_AUTO_FISHEYE_CORRECTION else "Fisheye preprocessing: DISABLED")
+    print("Starting Server...")
     print("="*80 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5000)
